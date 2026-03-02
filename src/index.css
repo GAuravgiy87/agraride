@@ -1,0 +1,73 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap');
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --color-primary: #f97316; /* Vibrant Orange */
+  --color-primary-dark: #ea580c;
+  --color-primary-light: #ffedd5;
+  --color-ink: #0f172a;
+  --color-paper: #f8fafc;
+  --radius-app: 2rem;
+}
+
+@layer base {
+  body {
+    @apply bg-paper text-ink font-sans antialiased;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-tight;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-white px-6 py-3 rounded-2xl font-bold transition-all hover:bg-primary-dark hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-orange-200/50;
+  }
+  
+  .btn-secondary {
+    @apply bg-white text-ink border border-slate-200 px-6 py-3 rounded-2xl font-bold transition-all hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98];
+  }
+
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl rounded-[2.5rem];
+  }
+  
+  .input-field {
+    @apply w-full bg-slate-50 border border-slate-200 px-5 py-4 rounded-2xl outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-ink placeholder:text-slate-400;
+  }
+
+  .badge {
+    @apply px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
+}
+
+@keyframes marker-pulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4); }
+  70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(249, 115, 22, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); }
+}
+
+.marker-pulse {
+  animation: marker-pulse 2s infinite;
+}
+
+.custom-div-icon {
+  background: none !important;
+  border: none !important;
+}
+
