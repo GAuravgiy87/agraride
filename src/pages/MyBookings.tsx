@@ -4,10 +4,12 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Navigation, ChevronRight } from 'lucide-react';
 import { User as UserType } from '../types';
 import { RatingModal } from '../components/ride/RatingModal';
+import { GoogleMap } from '../components/ride/GoogleMap';
 
 export const MyBookings = ({ user }: { user: UserType | null }) => {
     const [bookings, setBookings] = useState<any[]>([]);
     const [ratingRide, setRatingRide] = useState<any>(null);
+    const [trackingRide, setTrackingRide] = useState<any>(null);
 
     useEffect(() => {
         if (!user) return;
@@ -56,6 +58,20 @@ export const MyBookings = ({ user }: { user: UserType | null }) => {
                                     Ride: {booking.ride_status}
                                 </span>
                             </div>
+                            {booking.status === 'confirmed' && booking.ride_status === 'active' && (
+                                <button
+                                    onClick={() => setTrackingRide({
+                                        id: booking.ride_id,
+                                        driver_id: booking.driver_id,
+                                        driver_name: booking.driver_name,
+                                        origin: booking.origin,
+                                        destination: booking.destination
+                                    })}
+                                    className="btn-secondary !bg-blue-600 !text-white !border-none !py-3 !px-8 text-sm flex items-center gap-2"
+                                >
+                                    <Navigation className="w-4 h-4" /> Track Live
+                                </button>
+                            )}
                             {booking.ride_status === 'completed' && booking.status === 'confirmed' && (
                                 <button
                                     onClick={() => setRatingRide({ id: booking.ride_id, driver_id: booking.driver_id, driver_name: booking.driver_name })}
@@ -81,6 +97,16 @@ export const MyBookings = ({ user }: { user: UserType | null }) => {
                         ride={ratingRide}
                         currentUser={user}
                         onClose={() => setRatingRide(null)}
+                    />
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {trackingRide && (
+                    <GoogleMap
+                        ride={trackingRide}
+                        currentUser={user}
+                        onClose={() => setTrackingRide(null)}
                     />
                 )}
             </AnimatePresence>

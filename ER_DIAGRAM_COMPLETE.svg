@@ -1,0 +1,438 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 2400" width="1800" height="2400">
+  <defs>
+    <style>
+      .entity { fill: #FFE5CC; stroke: #FF5722; stroke-width: 3; }
+      .relationship { fill: #E3F2FD; stroke: #2196F3; stroke-width: 2; }
+      .attribute { fill: #F5F5F5; stroke: #666; stroke-width: 1.5; }
+      .key-attribute { fill: #FFF9C4; stroke: #F57C00; stroke-width: 2; }
+      .text { font-family: Arial, sans-serif; font-size: 14px; fill: #333; font-weight: bold; }
+      .small-text { font-family: Arial, sans-serif; font-size: 11px; fill: #555; }
+      .cardinality { font-family: Arial, sans-serif; font-size: 16px; fill: #D32F2F; font-weight: bold; }
+      .line { stroke: #333; stroke-width: 2; fill: none; }
+    </style>
+  </defs>
+  
+  <!-- Title -->
+  <text x="900" y="40" class="text" style="font-size: 28px; text-anchor: middle;">AgraRide Carpooling System - ER Diagram</text>
+  
+  <!-- USERS Entity -->
+  <rect x="100" y="100" width="200" height="60" class="entity"/>
+  <text x="200" y="135" class="text" text-anchor="middle">USERS</text>
+  
+  <!-- Users Attributes -->
+  <ellipse cx="50" cy="80" rx="40" ry="20" class="key-attribute"/>
+  <text x="50" y="85" class="small-text" text-anchor="middle">id (PK)</text>
+  
+  <ellipse cx="50" cy="130" rx="35" ry="20" class="attribute"/>
+  <text x="50" y="135" class="small-text" text-anchor="middle">name</text>
+  
+  <ellipse cx="50" cy="180" rx="35" ry="20" class="attribute"/>
+  <text x="50" y="185" class="small-text" text-anchor="middle">email</text>
+  
+  <ellipse cx="350" cy="80" rx="40" ry="20" class="attribute"/>
+  <text x="350" y="85" class="small-text" text-anchor="middle">password</text>
+  
+  <ellipse cx="350" cy="130" rx="35" ry="20" class="attribute"/>
+  <text x="350" y="135" class="small-text" text-anchor="middle">phone</text>
+  
+  <ellipse cx="350" cy="180" rx="35" ry="20" class="attribute"/>
+  <text x="350" y="185" class="small-text" text-anchor="middle">gender</text>
+  
+  <ellipse cx="200" cy="50" rx="50" ry="20" class="attribute"/>
+  <text x="200" y="55" class="small-text" text-anchor="middle">vehicle_type</text>
+  
+  <ellipse cx="200" cy="190" rx="30" ry="20" class="attribute"/>
+  <text x="200" y="195" class="small-text" text-anchor="middle">role</text>
+  
+  <!-- RIDES Entity -->
+  <rect x="700" y="100" width="200" height="60" class="entity"/>
+  <text x="800" y="135" class="text" text-anchor="middle">RIDES</text>
+  
+  <!-- Rides Attributes -->
+  <ellipse cx="650" cy="50" rx="40" ry="20" class="key-attribute"/>
+  <text x="650" y="55" class="small-text" text-anchor="middle">id (PK)</text>
+  
+  <ellipse cx="950" cy="50" rx="50" ry="20" class="attribute"/>
+  <text x="950" y="55" class="small-text" text-anchor="middle">driver_id (FK)</text>
+  
+  <ellipse cx="650" cy="100" rx="35" ry="20" class="attribute"/>
+  <text x="650" y="105" class="small-text" text-anchor="middle">origin</text>
+  
+  <ellipse cx="650" cy="150" rx="45" ry="20" class="attribute"/>
+  <text x="650" y="155" class="small-text" text-anchor="middle">destination</text>
+  
+  <ellipse cx="950" cy="100" rx="50" ry="20" class="attribute"/>
+  <text x="950" y="105" class="small-text" text-anchor="middle">origin_lat</text>
+  
+  <ellipse cx="950" cy="150" rx="50" ry="20" class="attribute"/>
+  <text x="950" y="155" class="small-text" text-anchor="middle">origin_lng</text>
+  
+  <ellipse cx="650" cy="200" rx="45" ry="20" class="attribute"/>
+  <text x="650" y="205" class="small-text" text-anchor="middle">dest_lat</text>
+  
+  <ellipse cx="950" cy="200" rx="45" ry="20" class="attribute"/>
+  <text x="950" y="205" class="small-text" text-anchor="middle">dest_lng</text>
+  
+  <ellipse cx="800" cy="50" rx="60" ry="20" class="attribute"/>
+  <text x="800" y="55" class="small-text" text-anchor="middle">departure_time</text>
+  
+  <ellipse cx="800" cy="190" rx="60" ry="20" class="attribute"/>
+  <text x="800" y="195" class="small-text" text-anchor="middle">available_seats</text>
+  
+  <ellipse cx="750" cy="220" rx="55" ry="20" class="attribute"/>
+  <text x="750" y="225" class="small-text" text-anchor="middle">price_per_seat</text>
+  
+  <ellipse cx="850" cy="220" rx="35" ry="20" class="attribute"/>
+  <text x="850" y="225" class="small-text" text-anchor="middle">status</text>
+  
+  <!-- OFFERS Relationship (User to Rides) -->
+  <path d="M 300 130 L 700 130" class="line"/>
+  <polygon points="300,130 310,125 310,135" fill="#333"/>
+  <polygon points="700,130 690,125 690,135" fill="#333"/>
+  
+  <path d="M 450 80 L 500 80 L 550 130 L 500 180 L 450 180 Z" class="relationship"/>
+  <text x="500" y="135" class="text" text-anchor="middle">OFFERS</text>
+  
+  <text x="350" y="120" class="cardinality">1</text>
+  <text x="650" y="120" class="cardinality">N</text>
+  
+  <!-- BOOKINGS Entity -->
+  <rect x="700" y="450" width="200" height="60" class="entity"/>
+  <text x="800" y="485" class="text" text-anchor="middle">BOOKINGS</text>
+  
+  <!-- Bookings Attributes -->
+  <ellipse cx="650" cy="400" rx="40" ry="20" class="key-attribute"/>
+  <text x="650" y="405" class="small-text" text-anchor="middle">id (PK)</text>
+  
+  <ellipse cx="950" cy="400" rx="50" ry="20" class="attribute"/>
+  <text x="950" y="405" class="small-text" text-anchor="middle">ride_id (FK)</text>
+  
+  <ellipse cx="650" cy="450" rx="60" ry="20" class="attribute"/>
+  <text x="650" y="455" class="small-text" text-anchor="middle">passenger_id (FK)</text>
+  
+  <ellipse cx="950" cy="450" rx="55" ry="20" class="attribute"/>
+  <text x="950" y="455" class="small-text" text-anchor="middle">seats_booked</text>
+  
+  <ellipse cx="650" cy="530" rx="35" ry="20" class="attribute"/>
+  <text x="650" y="535" class="small-text" text-anchor="middle">status</text>
+  
+  <ellipse cx="950" cy="530" rx="70" ry="20" class="attribute"/>
+  <text x="950" y="535" class="small-text" text-anchor="middle">counter_offer_price</text>
+  
+  <!-- HAS Relationship (Rides to Bookings) -->
+  <path d="M 800 160 L 800 450" class="line"/>
+  <polygon points="800,160 795,170 805,170" fill="#333"/>
+  <polygon points="800,450 795,440 805,440" fill="#333"/>
+  
+  <path d="M 750 280 L 800 280 L 850 330 L 800 380 L 750 380 Z" class="relationship"/>
+  <text x="800" y="335" class="text" text-anchor="middle">HAS</text>
+  
+  <text x="820" y="200" class="cardinality">1</text>
+  <text x="820" y="440" class="cardinality">N</text>
+  
+  <!-- BOOKS Relationship (User to Bookings) -->
+  <path d="M 300 130 L 400 130 L 400 480 L 700 480" class="line"/>
+  <polygon points="300,130 310,125 310,135" fill="#333"/>
+  <polygon points="700,480 690,475 690,485" fill="#333"/>
+  
+  <path d="M 500 430 L 550 430 L 600 480 L 550 530 L 500 530 Z" class="relationship"/>
+  <text x="550" y="485" class="text" text-anchor="middle">BOOKS</text>
+  
+  <text x="350" y="150" class="cardinality">1</text>
+  <text x="650" y="470" class="cardinality">N</text>
+  
+  <!-- LOCATIONS Entity -->
+  <rect x="1300" y="100" width="200" height="60" class="entity"/>
+  <text x="1400" y="135" class="text" text-anchor="middle">LOCATIONS</text>
+  
+  <!-- Locations Attributes -->
+  <ellipse cx="1250" cy="50" rx="40" ry="20" class="key-attribute"/>
+  <text x="1250" y="55" class="small-text" text-anchor="middle">id (PK)</text>
+  
+  <ellipse cx="1550" cy="50" rx="50" ry="20" class="attribute"/>
+  <text x="1550" y="55" class="small-text" text-anchor="middle">ride_id (FK)</text>
+  
+  <ellipse cx="1250" cy="100" rx="50" ry="20" class="attribute"/>
+  <text x="1250" y="105" class="small-text" text-anchor="middle">user_id (FK)</text>
+  
+  <ellipse cx="1550" cy="100" rx="40" ry="20" class="attribute"/>
+  <text x="1550" y="105" class="small-text" text-anchor="middle">latitude</text>
+  
+  <ellipse cx="1250" cy="180" rx="45" ry="20" class="attribute"/>
+  <text x="1250" y="185" class="small-text" text-anchor="middle">longitude</text>
+  
+  <ellipse cx="1550" cy="180" rx="50" ry="20" class="attribute"/>
+  <text x="1550" y="185" class="small-text" text-anchor="middle">updated_at</text>
+  
+  <!-- TRACKS Relationship (Rides to Locations) -->
+  <path d="M 900 130 L 1300 130" class="line"/>
+  <polygon points="900,130 910,125 910,135" fill="#333"/>
+  <polygon points="1300,130 1290,125 1290,135" fill="#333"/>
+  
+  <path d="M 1050 80 L 1100 80 L 1150 130 L 1100 180 L 1050 180 Z" class="relationship"/>
+  <text x="1100" y="135" class="text" text-anchor="middle">TRACKS</text>
+  
+  <text x="950" y="120" class="cardinality">1</text>
+  <text x="1250" y="120" class="cardinality">N</text>
+  
+  <!-- SHARES Relationship (User to Locations) -->
+  <path d="M 300 130 L 500 130 L 500 50 L 1400 50 L 1400 100" class="line"/>
+  <polygon points="300,130 310,125 310,135" fill="#333"/>
+  <polygon points="1400,100 1395,90 1405,90" fill="#333"/>
+  
+  <path d="M 850 20 L 900 20 L 950 50 L 900 80 L 850 80 Z" class="relationship"/>
+  <text x="900" y="55" class="text" text-anchor="middle">SHARES</text>
+  
+  <text x="350" y="110" class="cardinality">1</text>
+  <text x="1420" y="90" class="cardinality">N</text>
+  
+  <!-- MESSAGES Entity -->
+  <rect x="100" y="800" width="200" height="60" class="entity"/>
+  <text x="200" y="835" class="text" text-anchor="middle">MESSAGES</text>
+  
+  <!-- Messages Attributes -->
+  <ellipse cx="50" cy="750" rx="40" ry="20" class="key-attribute"/>
+  <text x="50" y="755" class="small-text" text-anchor="middle">id (PK)</text>
+  
+  <ellipse cx="350" cy="750" rx="50" ry="20" class="attribute"/>
+  <text x="350" y="755" class="small-text" text-anchor="middle">ride_id (FK)</text>
+  
+  <ellipse cx="50" cy="800" rx="50" ry="20" class="attribute"/>
+  <text x="50" y="805" class="small-text" text-anchor="middle">sender_id (FK)</text>
+  
+  <ellipse cx="350" cy="800" rx="55" ry="20" class="attribute"/>
+  <text x="350" y="805" class="small-text" text-anchor="middle">receiver_id (FK)</text>
+  
+  <ellipse cx="50" cy="880" rx="40" ry="20" class="attribute"/>
+  <text x="50" y="885" class="small-text" text-anchor="middle">content</text>
+  
+  <ellipse cx="350" cy="880" rx="50" ry="20" class="attribute"/>
+  <text x="350" y="885" class="small-text" text-anchor="middle">timestamp</text>
+  
+  <!-- SENDS Relationship (User to Messages) -->
+  <path d="M 200 160 L 200 800" class="line"/>
+  <polygon points="200,160 195,170 205,170" fill="#333"/>
+  <polygon points="200,800 195,790 205,790" fill="#333"/>
+  
+  <path d="M 150 450 L 200 450 L 250 500 L 200 550 L 150 550 Z" class="relationship"/>
+  <text x="200" y="505" class="text" text-anchor="middle">SENDS</text>
+  
+  <text x="220" y="200" class="cardinality">1</text>
+  <text x="220" y="790" class="cardinality">N</text>
+  
+  <!-- RECEIVES Relationship (User to Messages) -->
+  <path d="M 150 130 L 50 130 L 50 830 L 100 830" class="line"/>
+  <polygon points="150,130 140,125 140,135" fill="#333"/>
+  <polygon points="100,830 90,825 90,835" fill="#333"/>
+  
+  <path d="M 20 600 L 70 600 L 120 650 L 70 700 L 20 700 Z" class="relationship"/>
+  <text x="70" y="655" class="text" text-anchor="middle">RECEIVES</text>
+  
+  <text x="130" y="150" class="cardinality">1</text>
+  <text x="80" y="820" class="cardinality">N</text>
+  
+  <!-- CONTAINS Relationship (Rides to Messages) -->
+  <path d="M 800 160 L 800 700 L 300 700 L 300 800" class="line"/>
+  <polygon points="800,160 795,170 805,170" fill="#333"/>
+  <polygon points="300,800 295,790 305,790" fill="#333"/>
+  
+  <path d="M 500 650 L 550 650 L 600 700 L 550 750 L 500 750 Z" class="relationship"/>
+  <text x="550" y="705" class="text" text-anchor="middle">CONTAINS</text>
+  
+  <text x="820" y="200" class="cardinality">1</text>
+  <text x="320" y="790" class="cardinality">N</text>
+  
+  <!-- RATINGS Entity -->
+  <rect x="700" y="1100" width="200" height="60" class="entity"/>
+  <text x="800" y="1135" class="text" text-anchor="middle">RATINGS</text>
+  
+  <!-- Ratings Attributes -->
+  <ellipse cx="650" cy="1050" rx="40" ry="20" class="key-attribute"/>
+  <text x="650" y="1055" class="small-text" text-anchor="middle">id (PK)</text>
+  
+  <ellipse cx="950" cy="1050" rx="50" ry="20" class="attribute"/>
+  <text x="950" y="1055" class="small-text" text-anchor="middle">ride_id (FK)</text>
+  
+  <ellipse cx="650" cy="1100" rx="50" ry="20" class="attribute"/>
+  <text x="650" y="1105" class="small-text" text-anchor="middle">rater_id (FK)</text>
+  
+  <ellipse cx="950" cy="1100" rx="60" ry="20" class="attribute"/>
+  <text x="950" y="1105" class="small-text" text-anchor="middle">rated_user_id (FK)</text>
+  
+  <ellipse cx="650" cy="1180" rx="35" ry="20" class="attribute"/>
+  <text x="650" y="1185" class="small-text" text-anchor="middle">rating</text>
+  
+  <ellipse cx="950" cy="1180" rx="45" ry="20" class="attribute"/>
+  <text x="950" y="1185" class="small-text" text-anchor="middle">comment</text>
+  
+  <ellipse cx="800" cy="1190" rx="50" ry="20" class="attribute"/>
+  <text x="800" y="1195" class="small-text" text-anchor="middle">timestamp</text>
+  
+  <!-- GIVES Relationship (User to Ratings as Rater) -->
+  <path d="M 200 160 L 200 1000 L 700 1000 L 700 1100" class="line"/>
+  <polygon points="200,160 195,170 205,170" fill="#333"/>
+  <polygon points="700,1100 695,1090 705,1090" fill="#333"/>
+  
+  <path d="M 400 950 L 450 950 L 500 1000 L 450 1050 L 400 1050 Z" class="relationship"/>
+  <text x="450" y="1005" class="text" text-anchor="middle">GIVES</text>
+  
+  <text x="220" y="200" class="cardinality">1</text>
+  <text x="680" y="1090" class="cardinality">N</text>
+  
+  <!-- RECEIVES_RATING Relationship (User to Ratings as Rated User) -->
+  <path d="M 250 160 L 250 1050 L 700 1050 L 700 1100" class="line"/>
+  <polygon points="250,160 245,170 255,170" fill="#333"/>
+  <polygon points="700,1100 695,1090 705,1090" fill="#333"/>
+  
+  <path d="M 450 1000 L 500 1000 L 550 1050 L 500 1100 L 450 1100 Z" class="relationship"/>
+  <text x="500" y="1055" class="text" text-anchor="middle" style="font-size: 11px;">RECEIVES</text>
+  
+  <text x="270" y="200" class="cardinality">1</text>
+  <text x="680" y="1090" class="cardinality">N</text>
+  
+  <!-- FOR_RIDE Relationship (Rides to Ratings) -->
+  <path d="M 800 160 L 800 1100" class="line"/>
+  <polygon points="800,160 795,170 805,170" fill="#333"/>
+  <polygon points="800,1100 795,1090 805,1090" fill="#333"/>
+  
+  <path d="M 750 600 L 800 600 L 850 650 L 800 700 L 750 700 Z" class="relationship"/>
+  <text x="800" y="655" class="text" text-anchor="middle">FOR_RIDE</text>
+  
+  <text x="820" y="200" class="cardinality">1</text>
+  <text x="820" y="1090" class="cardinality">N</text>
+  
+  <!-- SOS_ALERTS Entity -->
+  <rect x="1300" y="450" width="200" height="60" class="entity"/>
+  <text x="1400" y="485" class="text" text-anchor="middle">SOS_ALERTS</text>
+  
+  <!-- SOS Attributes -->
+  <ellipse cx="1250" cy="400" rx="40" ry="20" class="key-attribute"/>
+  <text x="1250" y="405" class="small-text" text-anchor="middle">id (PK)</text>
+  
+  <ellipse cx="1550" cy="400" rx="50" ry="20" class="attribute"/>
+  <text x="1550" y="405" class="small-text" text-anchor="middle">ride_id (FK)</text>
+  
+  <ellipse cx="1250" cy="450" rx="50" ry="20" class="attribute"/>
+  <text x="1250" y="455" class="small-text" text-anchor="middle">user_id (FK)</text>
+  
+  <ellipse cx="1550" cy="450" rx="35" ry="20" class="attribute"/>
+  <text x="1550" y="455" class="small-text" text-anchor="middle">status</text>
+  
+  <ellipse cx="1400" cy="530" rx="50" ry="20" class="attribute"/>
+  <text x="1400" y="535" class="small-text" text-anchor="middle">timestamp</text>
+  
+  <!-- TRIGGERS Relationship (User to SOS) -->
+  <path d="M 300 130 L 600 130 L 600 480 L 1300 480" class="line"/>
+  <polygon points="300,130 310,125 310,135" fill="#333"/>
+  <polygon points="1300,480 1290,475 1290,485" fill="#333"/>
+  
+  <path d="M 900 430 L 950 430 L 1000 480 L 950 530 L 900 530 Z" class="relationship"/>
+  <text x="950" y="485" class="text" text-anchor="middle">TRIGGERS</text>
+  
+  <text x="350" y="110" class="cardinality">1</text>
+  <text x="1250" y="470" class="cardinality">N</text>
+  
+  <!-- ALERTS_FOR Relationship (Rides to SOS) -->
+  <path d="M 900 130 L 1100 130 L 1100 480 L 1300 480" class="line"/>
+  <polygon points="900,130 910,125 910,135" fill="#333"/>
+  <polygon points="1300,480 1290,475 1290,485" fill="#333"/>
+  
+  <path d="M 1150 430 L 1200 430 L 1250 480 L 1200 530 L 1150 530 Z" class="relationship"/>
+  <text x="1200" y="485" class="text" text-anchor="middle">ALERTS_FOR</text>
+  
+  <text x="950" y="110" class="cardinality">1</text>
+  <text x="1250" y="470" class="cardinality">N</text>
+  
+  <!-- Legend -->
+  <rect x="100" y="1400" width="600" height="300" fill="none" stroke="#333" stroke-width="2"/>
+  <text x="400" y="1430" class="text" text-anchor="middle" style="font-size: 20px;">LEGEND</text>
+  
+  <rect x="130" y="1460" width="100" height="40" class="entity"/>
+  <text x="250" y="1485" class="small-text">Entity (Table)</text>
+  
+  <path d="M 130 1530 L 180 1530 L 230 1560 L 180 1590 L 130 1590 Z" class="relationship"/>
+  <text x="250" y="1565" class="small-text">Relationship</text>
+  
+  <ellipse cx="180" cy="1630" rx="40" ry="20" class="key-attribute"/>
+  <text x="250" y="1635" class="small-text">Primary Key</text>
+  
+  <ellipse cx="180" cy="1680" rx="40" ry="20" class="attribute"/>
+  <text x="250" y="1685" class="small-text">Attribute</text>
+  
+  <!-- Cardinality Legend -->
+  <text x="130" y="1750" class="cardinality">1</text>
+  <text x="250" y="1750" class="small-text">One (Exactly one)</text>
+  
+  <text x="130" y="1780" class="cardinality">N</text>
+  <text x="250" y="1780" class="small-text">Many (Zero or more)</text>
+  
+  <!-- Relationship Summary -->
+  <rect x="800" y="1400" width="900" height="600" fill="none" stroke="#333" stroke-width="2"/>
+  <text x="1250" y="1430" class="text" text-anchor="middle" style="font-size: 20px;">RELATIONSHIPS SUMMARY</text>
+  
+  <text x="820" y="1470" class="small-text" style="font-weight: bold;">1. USERS ↔ RIDES (OFFERS)</text>
+  <text x="840" y="1490" class="small-text">• One user can offer many rides (1:N)</text>
+  <text x="840" y="1510" class="small-text">• Each ride is offered by exactly one driver</text>
+  
+  <text x="820" y="1550" class="small-text" style="font-weight: bold;">2. USERS ↔ BOOKINGS (BOOKS)</text>
+  <text x="840" y="1570" class="small-text">• One user can make many bookings (1:N)</text>
+  <text x="840" y="1590" class="small-text">• Each booking belongs to exactly one passenger</text>
+  
+  <text x="820" y="1630" class="small-text" style="font-weight: bold;">3. RIDES ↔ BOOKINGS (HAS)</text>
+  <text x="840" y="1650" class="small-text">• One ride can have many bookings (1:N)</text>
+  <text x="840" y="1670" class="small-text">• Each booking is for exactly one ride</text>
+  
+  <text x="820" y="1710" class="small-text" style="font-weight: bold;">4. RIDES ↔ LOCATIONS (TRACKS)</text>
+  <text x="840" y="1730" class="small-text">• One ride can have many location updates (1:N)</text>
+  <text x="840" y="1750" class="small-text">• Each location belongs to exactly one ride</text>
+  
+  <text x="820" y="1790" class="small-text" style="font-weight: bold;">5. USERS ↔ LOCATIONS (SHARES)</text>
+  <text x="840" y="1810" class="small-text">• One user can share many locations (1:N)</text>
+  <text x="840" y="1830" class="small-text">• Each location is shared by exactly one user</text>
+  
+  <text x="820" y="1870" class="small-text" style="font-weight: bold;">6. USERS ↔ MESSAGES (SENDS/RECEIVES)</text>
+  <text x="840" y="1890" class="small-text">• One user can send many messages (1:N)</text>
+  <text x="840" y="1910" class="small-text">• One user can receive many messages (1:N)</text>
+  <text x="840" y="1930" class="small-text">• Each message has one sender and one receiver</text>
+  
+  <text x="820" y="1970" class="small-text" style="font-weight: bold;">7. RIDES ↔ MESSAGES (CONTAINS)</text>
+  <text x="840" y="1990" class="small-text">• One ride can contain many messages (1:N)</text>
+  
+  <text x="820" y="2030" class="small-text" style="font-weight: bold;">8. USERS ↔ RATINGS (GIVES/RECEIVES)</text>
+  <text x="840" y="2050" class="small-text">• One user can give many ratings (1:N)</text>
+  <text x="840" y="2070" class="small-text">• One user can receive many ratings (1:N)</text>
+  <text x="840" y="2090" class="small-text">• Each rating has one rater and one rated user</text>
+  
+  <text x="820" y="2130" class="small-text" style="font-weight: bold;">9. RIDES ↔ RATINGS (FOR_RIDE)</text>
+  <text x="840" y="2150" class="small-text">• One ride can have many ratings (1:N)</text>
+  <text x="840" y="2170" class="small-text">• Each rating is for exactly one ride</text>
+  
+  <text x="820" y="2210" class="small-text" style="font-weight: bold;">10. USERS ↔ SOS_ALERTS (TRIGGERS)</text>
+  <text x="840" y="2230" class="small-text">• One user can trigger many SOS alerts (1:N)</text>
+  <text x="840" y="2250" class="small-text">• Each SOS alert is triggered by exactly one user</text>
+  
+  <text x="820" y="2290" class="small-text" style="font-weight: bold;">11. RIDES ↔ SOS_ALERTS (ALERTS_FOR)</text>
+  <text x="840" y="2310" class="small-text">• One ride can have many SOS alerts (1:N)</text>
+  <text x="840" y="2330" class="small-text">• Each SOS alert is for exactly one ride</text>
+  
+  <!-- Database Statistics -->
+  <rect x="100" y="2100" width="600" height="250" fill="#F0F4F8" stroke="#333" stroke-width="2"/>
+  <text x="400" y="2130" class="text" text-anchor="middle" style="font-size: 18px;">DATABASE STATISTICS</text>
+  
+  <text x="120" y="2170" class="small-text" style="font-weight: bold;">Total Entities: 7</text>
+  <text x="140" y="2195" class="small-text">• USERS, RIDES, BOOKINGS, LOCATIONS</text>
+  <text x="140" y="2215" class="small-text">• MESSAGES, RATINGS, SOS_ALERTS</text>
+  
+  <text x="120" y="2250" class="small-text" style="font-weight: bold;">Total Relationships: 11</text>
+  <text x="140" y="2275" class="small-text">• All relationships are 1:N (One-to-Many)</text>
+  <text x="140" y="2295" class="small-text">• No Many-to-Many relationships (normalized)</text>
+  
+  <text x="120" y="2330" class="small-text" style="font-weight: bold;">Foreign Keys: 15</text>
+  
+  <!-- Footer -->
+  <text x="900" y="2380" class="small-text" text-anchor="middle" style="font-style: italic;">
+    AgraRide Carpooling System - Complete Entity-Relationship Diagram
+  </text>
+  
+</svg>

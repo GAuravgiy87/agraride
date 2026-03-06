@@ -1,23 +1,74 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { Car, ChevronRight } from 'lucide-react';
+import { Car, ChevronRight, Edit, Trash2, Clock, MapPin, IndianRupee, Users, Navigation } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { formatDistanceToNow } from 'date-fns';
 import { User as UserType } from '../types';
 import { BookingRequests } from '../components/booking/BookingRequests';
+import { GoogleMap } from '../components/ride/GoogleMap';
 
 export const MyRides = ({ user }: { user: UserType | null }) => {
     const [rides, setRides] = useState<any[]>([]);
+    const [editingRide, setEditingRide] = useState<any>(null);
+    const [trackingRide, setTrackingRide] = useState<any>(null);
+    const [formData, setFormData] = useState({
+        origin: '',
+        destination: '',
+        departure_time: '',
+        available_seats: 4,
+        price_per_seat: 50
+    });
 
     useEffect(() => {
+        if (!user) return;
+        fetchRides();
+    }, [user]);
+
+    const fetchRides = () => {
         if (!user) return;
         fetch(`/api/rides/driver/${user.id}`)
             .then(res => res.json())
             .then(setRides);
-    }, [user]);
+    };
 
     const completeRide = async (rideId: number) => {
         const res = await fetch(`/api/rides/complete/${rideId}`, { method: 'POST' });
         if (res.ok) {
             setRides(rides.map(r => r.id === rideId ? { ...r, status: 'completed' } : r));
+        }
+    };
+
+    const deleteRide = async (rideId: number) => {
+        if (!confirm('Are you sure you want to delete this ride?')) return;
+        const res = await fetch(`/api/rides/${rideId}`, { method: 'DELETE' });
+        if (res.ok) {
+            setRides(rides.filter(r => r.id !== rideId));
+            alert('Ride deleted successfully!');
+        }
+    };
+
+    const startEdit = (ride: any) => {
+        setEditingRide(ride);
+        setFormData({
+            origin: ride.origin,
+            destination: ride.destination,
+            departure_time: new Date(ride.departure_time).toISOString().slice(0, 16),
+            available_seats: ride.available_seats,
+            price_per_seat: ride.price_per_seat
+        });
+    };
+
+    const saveEdit = async () => {
+        if (!editingRide) return;
+        const res = await fetch(`/api/rides/${editingRide.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        });
+        if (res.ok) {
+            alert('Ride updated successfully!');
+            setEditingRide(null);
+            fetchRides();
         }
     };
 
@@ -33,37 +84,80 @@ export const MyRides = ({ user }: { user: UserType | null }) => {
             {user && <BookingRequests user={user} />}
 
             <div className="grid gap-8">
-                {rides.map(ride => (
-                    <div key={ride.id} className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/50 flex flex-col md:flex-row md:items-center justify-between gap-6 group">
-                        <div className="flex items-center gap-6">
-                            <div className="w-16 h-16 rounded-[1.5rem] bg-slate-50 flex items-center justify-center border border-slate-100 group-hover:bg-primary/5 transition-colors">
-                                <Car className="text-slate-400 group-hover:text-primary transition-colors" />
-                            </div>
-                            <div>
-                                <div className="flex items-center gap-3 text-lg font-display font-bold text-ink mb-1">
-                                    <span>{ride.origin}</span>
-                                    <ChevronRight className="w-4 h-4 text-slate-300" />
-                                    <span>{ride.destination}</span>
+                {rides.map(ride => {
+                    const isUpcoming = new Date(ride.departure_time) > new Date();
+                    return (
+                        <div key={ride.id} className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/50">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                                <div className="flex items-center gap-6 flex-1">
+                                    <div className="w-16 h-16 rounded-[1.5rem] bg-slate-50 flex items-center justify-center border border-slate-100 group-hover:bg-primary/5 transition-colors">
+                                        <Car className="text-slate-400 group-hover:text-primary transition-colors" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-3 text-lg font-display font-bold text-ink mb-2">
+                                            <MapPin className="w-5 h-5 text-emerald-500" />
+                                            <span>{ride.origin}</span>
+                                            <ChevronRight className="w-4 h-4 text-slate-300" />
+                                            <span>{ride.destination}</span>
+                                        </div>
+                                        <div className="flex items-center gap-4 text-xs text-slate-400 font-bold uppercase tracking-widest">
+                                            <div className="flex items-center gap-1">
+                                                <Clock className={`w-3 h-3 ${isUpcoming ? 'text-emerald-500' : 'text-red-500'}`} />
+                                                <span className={isUpcoming ? 'text-emerald-600' : 'text-red-600'}>
+                                                    {formatDistanceToNow(new Date(ride.departure_time), { addSuffix: true })}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <Users className="w-3 h-3" />
+                                                {ride.available_seats} seats
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <IndianRupee className="w-3 h-3" />
+                                                ₹{ride.price_per_seat}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">{new Date(ride.departure_time).toLocaleString()}</p>
+                                <div className="flex items-center gap-3">
+                                    <span className={`badge ${ride.status === 'active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>
+                                        {ride.status}
+                                    </span>
+                                    {ride.status === 'active' && (
+                                        <>
+                                            <button
+                                                onClick={() => setTrackingRide(ride)}
+                                                className="p-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"
+                                                title="Track Live"
+                                            >
+                                                <Navigation className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => startEdit(ride)}
+                                                className="p-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"
+                                                title="Edit Ride"
+                                            >
+                                                <Edit className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => deleteRide(ride.id)}
+                                                className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors"
+                                                title="Delete Ride"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => completeRide(ride.id)}
+                                                className="btn-secondary !bg-slate-900 !text-white !border-none !py-3 !px-8 text-sm"
+                                            >
+                                                Complete Ride
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                        <div className="flex items-center gap-6">
-                            <span className={`badge ${ride.status === 'active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-100 text-slate-500 border border-slate-200'
-                                }`}>
-                                {ride.status}
-                            </span>
-                            {ride.status === 'active' && (
-                                <button
-                                    onClick={() => completeRide(ride.id)}
-                                    className="btn-secondary !bg-slate-900 !text-white !border-none !py-3 !px-8 text-sm"
-                                >
-                                    Complete Ride
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                ))}
+                    );
+                })}
                 {rides.length === 0 && (
                     <div className="text-center py-32 bg-white rounded-[4rem] border border-dashed border-slate-200">
                         <Car className="w-16 h-16 text-slate-100 mx-auto mb-6" />
@@ -71,6 +165,106 @@ export const MyRides = ({ user }: { user: UserType | null }) => {
                     </div>
                 )}
             </div>
+
+            {/* Edit Modal */}
+            <AnimatePresence>
+                {editingRide && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+                        onClick={() => setEditingRide(null)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.9, y: 20 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="bg-white w-full max-w-2xl rounded-[3rem] p-8 shadow-2xl"
+                        >
+                            <h3 className="text-2xl font-display font-black text-ink mb-6">Edit Ride</h3>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">Origin</label>
+                                    <input
+                                        type="text"
+                                        value={formData.origin}
+                                        onChange={(e) => setFormData({ ...formData, origin: e.target.value })}
+                                        className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">Destination</label>
+                                    <input
+                                        type="text"
+                                        value={formData.destination}
+                                        onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
+                                        className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">Departure Time</label>
+                                    <input
+                                        type="datetime-local"
+                                        value={formData.departure_time}
+                                        onChange={(e) => setFormData({ ...formData, departure_time: e.target.value })}
+                                        className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-2">Available Seats</label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max="8"
+                                            value={formData.available_seats}
+                                            onChange={(e) => setFormData({ ...formData, available_seats: parseInt(e.target.value) })}
+                                            className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-2">Price per Seat (₹)</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={formData.price_per_seat}
+                                            onChange={(e) => setFormData({ ...formData, price_per_seat: parseInt(e.target.value) })}
+                                            className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex gap-4 mt-8">
+                                <button
+                                    onClick={saveEdit}
+                                    className="btn-primary flex-1 !py-4"
+                                >
+                                    Save Changes
+                                </button>
+                                <button
+                                    onClick={() => setEditingRide(null)}
+                                    className="btn-secondary flex-1 !py-4"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Live Tracking Modal */}
+            <AnimatePresence>
+                {trackingRide && (
+                    <GoogleMap
+                        ride={trackingRide}
+                        currentUser={user}
+                        onClose={() => setTrackingRide(null)}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 };

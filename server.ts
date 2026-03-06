@@ -62,13 +62,38 @@ async function startServer() {
   });
 
   app.post("/api/rides", (req, res) => {
-    const { driver_id, origin, destination, departure_time, available_seats, price_per_seat } = req.body;
+    const { driver_id, origin, destination, departure_time, available_seats, price_per_seat, origin_lat, origin_lng, dest_lat, dest_lng } = req.body;
     try {
       const result = db.prepare(`
-        INSERT INTO rides (driver_id, origin, destination, departure_time, available_seats, price_per_seat) 
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run(driver_id, origin, destination, departure_time, available_seats, price_per_seat);
+        INSERT INTO rides (driver_id, origin, destination, departure_time, available_seats, price_per_seat, origin_lat, origin_lng, dest_lat, dest_lng) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(driver_id, origin, destination, departure_time, available_seats, price_per_seat, origin_lat, origin_lng, dest_lat, dest_lng);
       res.json({ id: result.lastInsertRowid });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.put("/api/rides/:id", (req, res) => {
+    const { id } = req.params;
+    const { origin, destination, departure_time, available_seats, price_per_seat, origin_lat, origin_lng, dest_lat, dest_lng } = req.body;
+    try {
+      db.prepare(`
+        UPDATE rides 
+        SET origin = ?, destination = ?, departure_time = ?, available_seats = ?, price_per_seat = ?, origin_lat = ?, origin_lng = ?, dest_lat = ?, dest_lng = ?
+        WHERE id = ?
+      `).run(origin, destination, departure_time, available_seats, price_per_seat, origin_lat, origin_lng, dest_lat, dest_lng, id);
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.delete("/api/rides/:id", (req, res) => {
+    const { id } = req.params;
+    try {
+      db.prepare("DELETE FROM rides WHERE id = ?").run(id);
+      res.json({ success: true });
     } catch (e: any) {
       res.status(400).json({ error: e.message });
     }
@@ -76,12 +101,12 @@ async function startServer() {
 
   // Bookings
   app.post("/api/bookings", (req, res) => {
-    const { ride_id, passenger_id, seats_booked } = req.body;
+    const { ride_id, passenger_id, seats_booked, counter_offer_price } = req.body;
     try {
-      // Check if user already has a booking for this ride
-      const existingBooking = db.prepare('SELECT * FROM bookings WHERE ride_id = ? AND passenger_id = ?').get(ride_id, passenger_id) as any;
+      // Check if user already has a pending or confirmed booking for this ride
+      const existingBooking = db.prepare("SELECT * FROM bookings WHERE ride_id = ? AND passenger_id = ? AND status IN ('pending', 'confirmed')").get(ride_id, passenger_id) as any;
       if (existingBooking) {
-        return res.status(400).json({ error: "You have already booked this ride" });
+        return res.status(400).json({ error: "You have already requested or booked this ride" });
       }
 
       const ride = db.prepare('SELECT available_seats FROM rides WHERE id = ?').get(ride_id) as any;
@@ -89,8 +114,8 @@ async function startServer() {
         return res.status(400).json({ error: "Not enough seats available" });
       }
 
-      db.prepare('INSERT INTO bookings (ride_id, passenger_id, seats_booked, status) VALUES (?, ?, ?, ?)').run(ride_id, passenger_id, seats_booked, 'pending');
-      res.json({ success: true, message: "Booking request sent to driver" });
+      db.prepare('INSERT INTO bookings (ride_id, passenger_id, seats_booked, status, counter_offer_price) VALUES (?, ?, ?, ?, ?)').run(ride_id, passenger_id, seats_booked, 'pending', counter_offer_price || null);
+      res.json({ success: true, message: counter_offer_price ? "Counter offer sent to driver" : "Booking request sent to driver" });
     } catch (e: any) {
       res.status(400).json({ error: e.message });
     }
@@ -124,7 +149,7 @@ async function startServer() {
   app.get("/api/bookings/driver/:driverId", (req, res) => {
     const { driverId } = req.params;
     const bookings = db.prepare(`
-      SELECT b.*, r.origin, r.destination, r.departure_time, u.name as passenger_name, u.phone as passenger_phone, u.gender as passenger_gender
+      SELECT b.*, r.origin, r.destination, r.departure_time, r.price_per_seat, u.name as passenger_name, u.phone as passenger_phone, u.gender as passenger_gender
       FROM bookings b
       JOIN rides r ON b.ride_id = r.id
       JOIN users u ON b.passenger_id = u.id
@@ -200,6 +225,59 @@ async function startServer() {
       detailedBookings,
       activeSOS
     });
+  });
+
+  // Admin - Get all rides with driver details
+  app.get("/api/admin/rides", (req, res) => {
+    const rides = db.prepare(`
+      SELECT r.*, u.name as driver_name, u.phone as driver_phone, u.gender as driver_gender
+      FROM rides r 
+      JOIN users u ON r.driver_id = u.id 
+      ORDER BY r.id DESC
+    `).all();
+    res.json(rides);
+  });
+
+  // Admin - Get all users
+  app.get("/api/admin/users", (req, res) => {
+    const users = db.prepare('SELECT id, name, email, phone, gender, vehicle_type, role FROM users ORDER BY id DESC').all();
+    res.json(users);
+  });
+
+  // Admin - Delete user
+  app.delete("/api/admin/users/:id", (req, res) => {
+    const { id } = req.params;
+    try {
+      // Delete user's rides first
+      db.prepare('DELETE FROM rides WHERE driver_id = ?').run(id);
+      // Delete user's bookings
+      db.prepare('DELETE FROM bookings WHERE passenger_id = ?').run(id);
+      // Delete user's locations
+      db.prepare('DELETE FROM locations WHERE user_id = ?').run(id);
+      // Delete user's messages
+      db.prepare('DELETE FROM messages WHERE sender_id = ? OR receiver_id = ?').run(id, id);
+      // Delete user's ratings
+      db.prepare('DELETE FROM ratings WHERE rater_id = ? OR rated_user_id = ?').run(id, id);
+      // Delete user's SOS alerts
+      db.prepare('DELETE FROM sos_alerts WHERE user_id = ?').run(id);
+      // Finally delete the user
+      db.prepare('DELETE FROM users WHERE id = ?').run(id);
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  // Admin - Update user role
+  app.put("/api/admin/users/:id/role", (req, res) => {
+    const { id } = req.params;
+    const { role } = req.body;
+    try {
+      db.prepare('UPDATE users SET role = ? WHERE id = ?').run(role, id);
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
   });
 
   // SOS API
@@ -296,15 +374,15 @@ async function startServer() {
 
   // Location API
   app.post("/api/locations", (req, res) => {
-    const { ride_id, latitude, longitude } = req.body;
+    const { ride_id, user_id, latitude, longitude } = req.body;
     try {
-      const existing = db.prepare('SELECT id FROM locations WHERE ride_id = ?').get(ride_id);
+      const existing = db.prepare('SELECT id FROM locations WHERE ride_id = ? AND user_id = ?').get(ride_id, user_id);
       if (existing) {
-        db.prepare('UPDATE locations SET latitude = ?, longitude = ?, updated_at = CURRENT_TIMESTAMP WHERE ride_id = ?')
-          .run(latitude, longitude, ride_id);
+        db.prepare('UPDATE locations SET latitude = ?, longitude = ?, updated_at = CURRENT_TIMESTAMP WHERE ride_id = ? AND user_id = ?')
+          .run(latitude, longitude, ride_id, user_id);
       } else {
-        db.prepare('INSERT INTO locations (ride_id, latitude, longitude) VALUES (?, ?, ?)')
-          .run(ride_id, latitude, longitude);
+        db.prepare('INSERT INTO locations (ride_id, user_id, latitude, longitude) VALUES (?, ?, ?, ?)')
+          .run(ride_id, user_id, latitude, longitude);
       }
       res.json({ success: true });
     } catch (e: any) {
@@ -314,8 +392,13 @@ async function startServer() {
 
   app.get("/api/locations/:rideId", (req, res) => {
     const { rideId } = req.params;
-    const location = db.prepare('SELECT * FROM locations WHERE ride_id = ?').get(rideId);
-    res.json(location || null);
+    const locations = db.prepare(`
+      SELECT l.*, u.name as user_name, u.id as user_id
+      FROM locations l
+      JOIN users u ON l.user_id = u.id
+      WHERE l.ride_id = ?
+    `).all(rideId);
+    res.json(locations);
   });
 
   // Admin DB Management

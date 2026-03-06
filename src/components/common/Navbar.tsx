@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Shield, MessageSquare, User, LogOut, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { User as UserType } from '../../types';
@@ -7,6 +7,12 @@ import { AnimatedLogo } from './AnimatedLogo';
 
 export const Navbar = ({ user, onLogout }: { user: UserType | null, onLogout: () => void }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        onLogout();
+        navigate('/');
+    };
 
     return (
         <nav className="sticky top-0 z-50 bg-white border-b border-slate-200">
@@ -49,7 +55,7 @@ export const Navbar = ({ user, onLogout }: { user: UserType | null, onLogout: ()
                                     <span className="font-bold text-sm">{user.name}</span>
                                 </Link>
                                 <button
-                                    onClick={onLogout}
+                                    onClick={handleLogout}
                                     className="p-2 text-slate-400 hover:text-red-500 transition-colors"
                                     title="Logout"
                                 >
@@ -96,7 +102,7 @@ export const Navbar = ({ user, onLogout }: { user: UserType | null, onLogout: ()
                         )}
                         {user?.role === 'admin' && <Link to="/admin" className="block text-slate-600 font-medium" onClick={() => setIsOpen(false)}>Admin</Link>}
                         {user ? (
-                            <button onClick={onLogout} className="w-full text-left text-red-500 font-medium">Logout</button>
+                            <button onClick={() => { handleLogout(); setIsOpen(false); }} className="w-full text-left text-red-500 font-medium">Logout</button>
                         ) : (
                             <Link to="/login" className="block bg-primary text-white text-center py-3 rounded-xl font-bold" onClick={() => setIsOpen(false)}>Login</Link>
                         )}

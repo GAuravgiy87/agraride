@@ -1,45 +1,95 @@
 import { useState, FormEvent } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { motion } from 'motion/react';
-import { PlusCircle, Car as CarIcon, Bike } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { PlusCircle, Car as CarIcon, Bike, MapPin } from 'lucide-react';
 import { User as UserType } from '../types';
+import { LocationPicker } from '../components/ride/LocationPicker';
 
 export const OfferRide = ({ user }: { user: UserType | null }) => {
     const [formData, setFormData] = useState({
         origin: '',
         destination: '',
+        origin_lat: null as number | null,
+        origin_lng: null as number | null,
+        dest_lat: null as number | null,
+        dest_lng: null as number | null,
         departure_time: '',
         available_seats: 3,
         price_per_seat: 100,
         vehicle_type: '4-wheeler' as '2-wheeler' | '4-wheeler',
         vehicle_description: ''
     });
+    const [showOriginPicker, setShowOriginPicker] = useState(false);
+    const [showDestPicker, setShowDestPicker] = useState(false);
     const navigate = useNavigate();
 
     if (!user) return <Navigate to="/login" />;
 
+    const handleOriginSelect = (location: { name: string; lat: number; lng: number }) => {
+        setFormData(prev => ({
+            ...prev,
+            origin: location.name,
+            origin_lat: location.lat,
+            origin_lng: location.lng
+        }));
+        console.log('Origin selected:', location);
+    };
+
+    const handleDestSelect = (location: { name: string; lat: number; lng: number }) => {
+        setFormData(prev => ({
+            ...prev,
+            destination: location.name,
+            dest_lat: location.lat,
+            dest_lng: location.lng
+        }));
+        console.log('Destination selected:', location);
+    };
+
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
+        
+        const rideData = {
+            driver_id: user.id,
+            origin: formData.origin,
+            destination: formData.destination,
+            departure_time: formData.departure_time,
+            available_seats: formData.available_seats,
+            price_per_seat: formData.price_per_seat,
+            driver_vehicle: formData.vehicle_type,
+            driver_vehicle_description: formData.vehicle_description,
+            origin_lat: formData.origin_lat,
+            origin_lng: formData.origin_lng,
+            dest_lat: formData.dest_lat,
+            dest_lng: formData.dest_lng
+        };
+        
+        console.log('Submitting ride data:', rideData);
+        
         const res = await fetch('/api/rides', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                ...formData,
-                driver_id: user.id,
-                driver_vehicle: formData.vehicle_type,
-                driver_vehicle_description: formData.vehicle_description
-            })
+            body: JSON.stringify(rideData)
         });
-        if (res.ok) navigate('/search');
+        
+        if (res.ok) {
+            const result = await res.json();
+            console.log('Ride created:', result);
+            navigate('/search');
+        } else {
+            const error = await res.json();
+            console.error('Failed to create ride:', error);
+            alert('Failed to create ride: ' + (error.error || 'Unknown error'));
+        }
     };
 
     return (
-        <div className="max-w-2xl mx-auto px-4 py-16">
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="glass-card p-12"
-            >
+        <>
+            <div className="max-w-2xl mx-auto px-4 py-16">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="glass-card p-12"
+                >
                 <div className="mb-10">
                     <h2 className="text-4xl font-display font-black tracking-tight">Offer a Ride</h2>
                     <p className="text-slate-500 mt-2 font-medium">Share your journey and help Agra travel better.</p>
@@ -87,23 +137,81 @@ export const OfferRide = ({ user }: { user: UserType | null }) => {
                     <div className="grid md:grid-cols-2 gap-8">
                         <div>
                             <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 ml-1">Pickup Point</label>
-                            <input
-                                placeholder="e.g. Dayalbagh"
-                                className="input-field"
-                                value={formData.origin}
-                                onChange={e => setFormData({ ...formData, origin: e.target.value })}
-                                required
-                            />
+                            <div className="relative">
+                                <input
+                                    placeholder="e.g. Dayalbagh"
+                                    className={`input-field pr-12 ${formData.origin_lat && formData.origin_lng ? 'font-bold text-slate-800' : ''}`}
+                                    value={formData.origin}
+                                    onChange={e => setFormData({ ...formData, origin: e.target.value })}
+                                    required
+                                    readOnly={!!(formData.origin_lat && formData.origin_lng)}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowOriginPicker(true)}
+                                    className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-colors ${
+                                        formData.origin_lat && formData.origin_lng 
+                                            ? 'bg-green-500 hover:bg-green-600 text-white' 
+                                            : 'bg-primary/10 hover:bg-primary/20 text-primary'
+                                    }`}
+                                    title="Pick on Map"
+                                >
+                                    <MapPin className="w-5 h-5" />
+                                </button>
+                            </div>
+                            {formData.origin_lat && formData.origin_lng && (
+                                <div className="mt-2 flex items-center gap-2">
+                                    <div className="flex items-center gap-1 text-xs text-green-600 font-mono">
+                                        ✓ Location pinned: {formData.origin_lat.toFixed(4)}, {formData.origin_lng.toFixed(4)}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, origin: '', origin_lat: null, origin_lng: null }))}
+                                        className="text-xs text-red-500 hover:text-red-700 underline"
+                                    >
+                                        Clear
+                                    </button>
+                                </div>
+                            )}
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 ml-1">Drop Point</label>
-                            <input
-                                placeholder="e.g. Sanjay Place"
-                                className="input-field"
-                                value={formData.destination}
-                                onChange={e => setFormData({ ...formData, destination: e.target.value })}
-                                required
-                            />
+                            <div className="relative">
+                                <input
+                                    placeholder="e.g. Sanjay Place"
+                                    className={`input-field pr-12 ${formData.dest_lat && formData.dest_lng ? 'font-bold text-slate-800' : ''}`}
+                                    value={formData.destination}
+                                    onChange={e => setFormData({ ...formData, destination: e.target.value })}
+                                    required
+                                    readOnly={!!(formData.dest_lat && formData.dest_lng)}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowDestPicker(true)}
+                                    className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-colors ${
+                                        formData.dest_lat && formData.dest_lng 
+                                            ? 'bg-green-500 hover:bg-green-600 text-white' 
+                                            : 'bg-primary/10 hover:bg-primary/20 text-primary'
+                                    }`}
+                                    title="Pick on Map"
+                                >
+                                    <MapPin className="w-5 h-5" />
+                                </button>
+                            </div>
+                            {formData.dest_lat && formData.dest_lng && (
+                                <div className="mt-2 flex items-center gap-2">
+                                    <div className="flex items-center gap-1 text-xs text-green-600 font-mono">
+                                        ✓ Location pinned: {formData.dest_lat.toFixed(4)}, {formData.dest_lng.toFixed(4)}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, destination: '', dest_lat: null, dest_lng: null }))}
+                                        className="text-xs text-red-500 hover:text-red-700 underline"
+                                    >
+                                        Clear
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -155,5 +263,25 @@ export const OfferRide = ({ user }: { user: UserType | null }) => {
                 </form>
             </motion.div>
         </div>
+
+        <AnimatePresence>
+            {showOriginPicker && (
+                <LocationPicker
+                    title="Select Pickup Point"
+                    initialLocation={formData.origin}
+                    onLocationSelect={handleOriginSelect}
+                    onClose={() => setShowOriginPicker(false)}
+                />
+            )}
+            {showDestPicker && (
+                <LocationPicker
+                    title="Select Drop Point"
+                    initialLocation={formData.destination}
+                    onLocationSelect={handleDestSelect}
+                    onClose={() => setShowDestPicker(false)}
+                />
+            )}
+        </AnimatePresence>
+    </>
     );
 };

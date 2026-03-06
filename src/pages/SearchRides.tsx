@@ -1,18 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, User, Clock, IndianRupee, ChevronRight, Shield, MessageSquare, TrendingUp, Navigation, Car } from 'lucide-react';
+import { Search, User, Clock, IndianRupee, ChevronRight, Shield, MessageSquare, TrendingUp, Navigation, Car, Map as MapIcon } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { User as UserType } from '../types';
 import { StarRating } from '../components/ride/StarRating';
 import { GoogleMap } from '../components/ride/GoogleMap';
+import { RoutePreview } from '../components/ride/RoutePreview';
 
 export const SearchRides = ({ user }: { user: UserType | null }) => {
     const [rides, setRides] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [bookingRideId, setBookingRideId] = useState<number | null>(null);
     const [selectedRide, setSelectedRide] = useState<any>(null);
+    const [previewRide, setPreviewRide] = useState<any>(null);
     const [userBookings, setUserBookings] = useState<Set<number>>(new Set());
+    const [counterOfferPrice, setCounterOfferPrice] = useState<number | null>(null);
+    const [showCounterOffer, setShowCounterOffer] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -32,15 +36,35 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
         fetchRides();
     }, []);
 
-    useEffect(() => {
+    // Check for pending bookings
+    const [pendingBookings, setPendingBookings] = useState<Set<number>>(new Set());
+    
+    const fetchBookingStatus = () => {
         if (!user) return;
-        // Fetch user's bookings to check which rides they've already booked
         fetch(`/api/bookings/passenger/${user.id}`)
             .then(res => res.json())
             .then(bookings => {
-                const bookedRideIds = new Set(bookings.map((b: any) => b.ride_id));
-                setUserBookings(bookedRideIds);
+                const pendingRideIds = new Set(
+                    bookings
+                        .filter((b: any) => b.status === 'pending')
+                        .map((b: any) => b.ride_id)
+                );
+                setPendingBookings(pendingRideIds);
+                
+                const confirmedRideIds = new Set(
+                    bookings
+                        .filter((b: any) => b.status === 'confirmed')
+                        .map((b: any) => b.ride_id)
+                );
+                setUserBookings(confirmedRideIds);
             });
+    };
+    
+    useEffect(() => {
+        fetchBookingStatus();
+        // Refresh booking status every 5 seconds
+        const interval = setInterval(fetchBookingStatus, 5000);
+        return () => clearInterval(interval);
     }, [user]);
 
     useEffect(() => {
@@ -65,12 +89,21 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
         const res = await fetch('/api/bookings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ride_id: rideId, passenger_id: user.id, seats_booked: 1 })
+            body: JSON.stringify({ 
+                ride_id: rideId, 
+                passenger_id: user.id, 
+                seats_booked: 1,
+                counter_offer_price: counterOfferPrice 
+            })
         });
         if (res.ok) {
-            alert("Ride booked successfully!");
+            const data = await res.json();
+            alert(data.message);
             setBookingRideId(null);
-            setUserBookings(prev => new Set([...prev, rideId]));
+            setCounterOfferPrice(null);
+            setShowCounterOffer(false);
+            // Add to pending bookings immediately
+            setPendingBookings(prev => new Set([...prev, rideId]));
             const updated = await fetch('/api/rides').then(r => r.json());
             setRides(updated);
         } else {
@@ -103,7 +136,9 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
                         const isExpanding = bookingRideId === ride.id;
                         const isFull = ride.available_seats === 0;
                         const hasBooked = userBookings.has(ride.id);
-                        const isDisabled = isFull || hasBooked;
+                        const hasPending = pendingBookings.has(ride.id);
+                        const isOwnRide = user?.id === ride.driver_id;
+                        const isDisabled = isFull || hasBooked || isOwnRide || hasPending;
                         
                         return (
                             <motion.div
@@ -111,7 +146,7 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
                                 layout
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className={`bg-white rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-slate-200 transition-all overflow-hidden group ${isDisabled ? 'opacity-60' : ''}`}
+                                className={`bg-white rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-slate-200 transition-all overflow-hidden group ${isDisabled && !isOwnRide ? 'opacity-60' : ''} ${isOwnRide ? 'border-2 border-primary/30 bg-primary/5' : ''}`}
                             >
                                 <div className="p-8 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                                     <div className="flex-1">
@@ -120,7 +155,14 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
                                                 <User className="text-slate-400 group-hover:text-primary transition-colors" />
                                             </div>
                                             <div>
-                                                <h4 className="font-display font-bold text-xl">{ride.driver_name}</h4>
+                                                <h4 className="font-display font-bold text-xl flex items-center gap-2">
+                                                    {ride.driver_name}
+                                                    {isOwnRide && (
+                                                        <span className="text-xs font-black text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
+                                                            YOUR RIDE
+                                                        </span>
+                                                    )}
+                                                </h4>
                                                 <div className="flex items-center gap-2">
                                                     <span className="badge bg-emerald-50 text-emerald-600 border border-emerald-100">Verified</span>
                                                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-0.5 rounded-full">
@@ -155,12 +197,30 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
                                     </div>
 
                                     <div className="flex flex-wrap items-center gap-8 lg:border-l lg:border-slate-100 lg:pl-10">
-                                        <div className="flex flex-col items-center bg-slate-50 px-6 py-4 rounded-3xl border border-slate-100">
-                                            <Clock className="w-4 h-4 text-slate-400 mb-2" />
-                                            <span className="text-lg font-black text-primary tracking-tighter leading-none">
+                                        <div className={`flex flex-col items-center px-6 py-4 rounded-3xl border ${
+                                            new Date(ride.departure_time) > new Date() 
+                                                ? 'bg-emerald-50 border-emerald-100' 
+                                                : 'bg-red-50 border-red-100'
+                                        }`}>
+                                            <Clock className={`w-4 h-4 mb-2 ${
+                                                new Date(ride.departure_time) > new Date() 
+                                                    ? 'text-emerald-600' 
+                                                    : 'text-red-600'
+                                            }`} />
+                                            <span className={`text-lg font-black tracking-tighter leading-none ${
+                                                new Date(ride.departure_time) > new Date() 
+                                                    ? 'text-emerald-600' 
+                                                    : 'text-red-600'
+                                            }`}>
                                                 {formatDistanceToNow(new Date(ride.departure_time), { addSuffix: false })}
                                             </span>
-                                            <span className="text-[10px] text-slate-400 font-bold uppercase mt-1">Left</span>
+                                            <span className={`text-[10px] font-bold uppercase mt-1 ${
+                                                new Date(ride.departure_time) > new Date() 
+                                                    ? 'text-emerald-600' 
+                                                    : 'text-red-600'
+                                            }`}>
+                                                {new Date(ride.departure_time) > new Date() ? 'Starts In' : 'Started'}
+                                            </span>
                                         </div>
 
                                         <div className="flex flex-col items-center">
@@ -168,13 +228,22 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
                                             <span className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Per Seat</span>
                                         </div>
 
-                                        <button
-                                            onClick={() => !isDisabled && setBookingRideId(isExpanding ? null : ride.id)}
-                                            disabled={isDisabled}
-                                            className={`btn-primary !px-8 !py-4 ${isExpanding ? '!bg-slate-900 !shadow-none' : ''} ${isDisabled ? '!bg-slate-300 !text-slate-500 cursor-not-allowed' : ''}`}
-                                        >
-                                            {isFull ? 'Full Seats' : hasBooked ? 'Already Booked' : isExpanding ? 'Cancel' : 'Book Ride'}
-                                        </button>
+                                        <div className="flex gap-3">
+                                            <button
+                                                onClick={() => setPreviewRide(ride)}
+                                                className="btn-secondary !px-6 !py-4 flex items-center gap-2"
+                                                title="View Route"
+                                            >
+                                                <MapIcon className="w-5 h-5" />
+                                            </button>
+                                            <button
+                                                onClick={() => !isDisabled && setBookingRideId(isExpanding ? null : ride.id)}
+                                                disabled={isDisabled}
+                                                className={`btn-primary !px-8 !py-4 ${isExpanding ? '!bg-slate-900 !shadow-none' : ''} ${isDisabled ? '!bg-slate-300 !text-slate-500 cursor-not-allowed' : ''}`}
+                                            >
+                                                {isOwnRide ? 'Your Ride' : isFull ? 'Full Seats' : hasBooked ? 'Booked' : hasPending ? 'Pending Approval' : isExpanding ? 'Cancel' : 'Book Ride'}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -249,19 +318,85 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
                                                         <div className="w-full bg-slate-50 h-2 rounded-full overflow-hidden">
                                                             <div className={`h-full ${ride.available_seats === 0 ? 'bg-red-500' : 'bg-primary'}`} style={{ width: `${(1 - ride.available_seats / 4) * 100}%` }} />
                                                         </div>
+                                                        
+                                                        {/* Counter Offer Section */}
+                                                        <div className="pt-4 border-t border-slate-50">
+                                                            <div className="flex items-center justify-between mb-2">
+                                                                <span className="text-sm font-bold text-ink">Price per Seat</span>
+                                                                <span className="text-2xl font-display font-black text-primary">₹{ride.price_per_seat}</span>
+                                                            </div>
+                                                            
+                                                            {!showCounterOffer ? (
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setShowCounterOffer(true);
+                                                                        const suggestedPrice = Math.round(ride.price_per_seat * 0.8);
+                                                                        setCounterOfferPrice(suggestedPrice > 0 ? suggestedPrice : ride.price_per_seat - 10);
+                                                                    }}
+                                                                    className="w-full mt-2 text-xs text-orange-600 font-bold hover:text-orange-700 underline"
+                                                                >
+                                                                    Make a Counter Offer
+                                                                </button>
+                                                            ) : (
+                                                                <div className="mt-3 space-y-2">
+                                                                    <label className="text-xs font-bold text-slate-600">Your Offer (₹)</label>
+                                                                    <div className="flex gap-2">
+                                                                        <input
+                                                                            type="number"
+                                                                            min="0"
+                                                                            value={counterOfferPrice || ''}
+                                                                            onChange={(e) => setCounterOfferPrice(parseInt(e.target.value))}
+                                                                            className="flex-1 px-3 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm font-bold"
+                                                                            placeholder="Enter your price"
+                                                                        />
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                setShowCounterOffer(false);
+                                                                                setCounterOfferPrice(null);
+                                                                            }}
+                                                                            className="px-3 py-2 text-xs text-slate-400 hover:text-slate-600"
+                                                                        >
+                                                                            Cancel
+                                                                        </button>
+                                                                    </div>
+                                                                    {counterOfferPrice && counterOfferPrice < ride.price_per_seat && (
+                                                                        <p className="text-xs text-emerald-600 font-bold">
+                                                                            Save ₹{ride.price_per_seat - counterOfferPrice}!
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        
                                                         <div className="flex justify-between items-center pt-4 border-t border-slate-50">
                                                             <span className="text-sm font-bold text-ink">Total Payable</span>
-                                                            <span className="text-2xl font-display font-black text-primary">₹{ride.price_per_seat}</span>
+                                                            <span className="text-2xl font-display font-black text-primary">
+                                                                ₹{counterOfferPrice || ride.price_per_seat}
+                                                            </span>
                                                         </div>
                                                     </div>
                                                     <div className="flex gap-4">
-                                                        <button
-                                                            onClick={() => handleConfirmBooking(ride.id)}
-                                                            disabled={isDisabled}
-                                                            className={`btn-primary flex-1 !py-4 flex items-center justify-center gap-2 ${isDisabled ? '!bg-slate-300 !text-slate-500 cursor-not-allowed' : ''}`}
-                                                        >
-                                                            {isFull ? 'Seats Full' : hasBooked ? 'Already Booked' : 'Confirm'} {!isDisabled && <ChevronRight className="w-5 h-5" />}
-                                                        </button>
+                                                        {isOwnRide ? (
+                                                            <div className="flex-1 bg-primary/10 border-2 border-primary/20 rounded-2xl p-6 text-center">
+                                                                <p className="text-sm font-black text-primary uppercase tracking-wider">This is your ride</p>
+                                                                <p className="text-xs text-slate-500 mt-2">You cannot book your own ride</p>
+                                                            </div>
+                                                        ) : hasPending ? (
+                                                            <div className="flex-1 bg-orange-50 border-2 border-orange-200 rounded-2xl p-6 text-center">
+                                                                <p className="text-sm font-black text-orange-600 uppercase tracking-wider">Request Pending</p>
+                                                                <p className="text-xs text-slate-500 mt-2">Waiting for driver approval</p>
+                                                            </div>
+                                                        ) : (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => handleConfirmBooking(ride.id)}
+                                                                    disabled={isDisabled}
+                                                                    className={`btn-primary flex-1 !py-4 flex items-center justify-center gap-2 ${isDisabled ? '!bg-slate-300 !text-slate-500 cursor-not-allowed' : ''}`}
+                                                                >
+                                                                    {isFull ? 'Seats Full' : hasBooked ? 'Already Booked' : counterOfferPrice ? 'Send Counter Offer' : 'Confirm'} {!isDisabled && <ChevronRight className="w-5 h-5" />}
+                                                                </button>
+                                                            </>
+                                                        )}
                                                         <button
                                                             onClick={() => setSelectedRide(ride)}
                                                             className="btn-secondary !bg-slate-900 !text-white !border-none !py-4 flex items-center justify-center gap-2"
@@ -296,6 +431,12 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
                         ride={selectedRide}
                         currentUser={user}
                         onClose={() => setSelectedRide(null)}
+                    />
+                )}
+                {previewRide && (
+                    <RoutePreview
+                        ride={previewRide}
+                        onClose={() => setPreviewRide(null)}
                     />
                 )}
             </AnimatePresence>

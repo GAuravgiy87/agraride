@@ -87,6 +87,12 @@ db.exec(`
 try { db.exec("ALTER TABLE users ADD COLUMN gender TEXT;"); } catch (e) {}
 try { db.exec("ALTER TABLE users ADD COLUMN vehicle_type TEXT;"); } catch (e) {}
 try { db.exec("ALTER TABLE bookings ADD COLUMN status TEXT DEFAULT 'pending';"); } catch (e) {}
+try { db.exec("ALTER TABLE bookings ADD COLUMN counter_offer_price REAL;"); } catch (e) {}
+try { db.exec("ALTER TABLE locations ADD COLUMN user_id INTEGER;"); } catch (e) {}
+try { db.exec("ALTER TABLE rides ADD COLUMN origin_lat REAL;"); } catch (e) {}
+try { db.exec("ALTER TABLE rides ADD COLUMN origin_lng REAL;"); } catch (e) {}
+try { db.exec("ALTER TABLE rides ADD COLUMN dest_lat REAL;"); } catch (e) {}
+try { db.exec("ALTER TABLE rides ADD COLUMN dest_lng REAL;"); } catch (e) {}
 
 // Seed Admin if not exists
 const adminExists = db.prepare('SELECT * FROM users WHERE email = ?').get('admin@agraride.com');
