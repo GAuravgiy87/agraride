@@ -92,9 +92,17 @@ async function startServer() {
   app.delete("/api/rides/:id", (req, res) => {
     const { id } = req.params;
     try {
+      // Delete all related records first (cascade delete)
+      db.prepare("DELETE FROM bookings WHERE ride_id = ?").run(id);
+      db.prepare("DELETE FROM locations WHERE ride_id = ?").run(id);
+      db.prepare("DELETE FROM messages WHERE ride_id = ?").run(id);
+      db.prepare("DELETE FROM ratings WHERE ride_id = ?").run(id);
+      db.prepare("DELETE FROM sos_alerts WHERE ride_id = ?").run(id);
+      // Finally delete the ride
       db.prepare("DELETE FROM rides WHERE id = ?").run(id);
       res.json({ success: true });
     } catch (e: any) {
+      console.error('Delete ride error:', e);
       res.status(400).json({ error: e.message });
     }
   });
@@ -248,22 +256,42 @@ async function startServer() {
   app.delete("/api/admin/users/:id", (req, res) => {
     const { id } = req.params;
     try {
-      // Delete user's rides first
+      // First, get all rides by this user
+      const userRides = db.prepare('SELECT id FROM rides WHERE driver_id = ?').all(id) as any[];
+      
+      // Delete all data related to user's rides
+      for (const ride of userRides) {
+        db.prepare('DELETE FROM bookings WHERE ride_id = ?').run(ride.id);
+        db.prepare('DELETE FROM locations WHERE ride_id = ?').run(ride.id);
+        db.prepare('DELETE FROM messages WHERE ride_id = ?').run(ride.id);
+        db.prepare('DELETE FROM ratings WHERE ride_id = ?').run(ride.id);
+        db.prepare('DELETE FROM sos_alerts WHERE ride_id = ?').run(ride.id);
+      }
+      
+      // Delete user's rides
       db.prepare('DELETE FROM rides WHERE driver_id = ?').run(id);
-      // Delete user's bookings
+      
+      // Delete user's bookings (as passenger)
       db.prepare('DELETE FROM bookings WHERE passenger_id = ?').run(id);
+      
       // Delete user's locations
       db.prepare('DELETE FROM locations WHERE user_id = ?').run(id);
+      
       // Delete user's messages
       db.prepare('DELETE FROM messages WHERE sender_id = ? OR receiver_id = ?').run(id, id);
+      
       // Delete user's ratings
       db.prepare('DELETE FROM ratings WHERE rater_id = ? OR rated_user_id = ?').run(id, id);
+      
       // Delete user's SOS alerts
       db.prepare('DELETE FROM sos_alerts WHERE user_id = ?').run(id);
+      
       // Finally delete the user
       db.prepare('DELETE FROM users WHERE id = ?').run(id);
+      
       res.json({ success: true });
     } catch (e: any) {
+      console.error('Delete user error:', e);
       res.status(400).json({ error: e.message });
     }
   });

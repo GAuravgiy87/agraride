@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Users, User, DollarSign, TrendingDown } from 'lucide-react';
-import { User as UserType } from '../types';
+import { Users, User, TrendingDown } from 'lucide-react';
+import { User as UserType } from '../../types';
 
 export const BookingRequests = ({ user }: { user: UserType }) => {
     const [requests, setRequests] = useState<any[]>([]);

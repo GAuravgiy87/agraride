@@ -18,6 +18,16 @@ export const AGRA_COORDINATES: Record<string, [number, number]> = {
     'Shahganj': [27.1800, 77.9800],
     'Bodla': [27.1900, 77.9500],
     'Khandari': [27.2050, 78.0050],
+    'Rambagh': [27.2111, 78.0247],
+    'Ram Bagh': [27.2111, 78.0247],
+    'Ramabagh': [27.2111, 78.0247],
+    'Belanganj': [27.1900, 78.0050],
+    'Lohamandi': [27.1850, 78.0000],
+    'Pratap Pura': [27.1950, 78.0150],
+    'Nunhai': [27.2100, 78.0350],
+    'Tajganj': [27.1700, 78.0450],
+    'Rakabganj': [27.1750, 78.0250],
+    'Civil Lines': [27.1800, 78.0100]
 };
 
 export const MapUpdater = ({ center }: { center: [number, number] }) => {

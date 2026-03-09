@@ -117,42 +117,64 @@ export const AdminDashboard = ({ user }: { user: UserType | null }) => {
     };
 
     const deleteRide = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this ride? This action cannot be undone.')) return;
+        if (!confirm('Are you sure you want to delete this ride? This will also delete all bookings, messages, and ratings for this ride.')) return;
         
-        const res = await fetch(`/api/rides/${id}`, { method: 'DELETE' });
-        if (res.ok) {
-            alert('Ride deleted successfully');
-            fetchAllRides();
-            fetchStats();
-        } else {
-            alert('Failed to delete ride');
+        try {
+            const res = await fetch(`/api/rides/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            
+            if (res.ok) {
+                alert('Ride deleted successfully');
+                fetchAllRides();
+                fetchStats();
+            } else {
+                alert('Failed to delete ride: ' + (data.error || 'Unknown error'));
+                console.error('Delete ride error:', data);
+            }
+        } catch (error) {
+            alert('Failed to delete ride: Network error');
+            console.error('Delete ride error:', error);
         }
     };
 
     const completeRide = async (id: number) => {
         if (!confirm('Mark this ride as completed?')) return;
         
-        const res = await fetch(`/api/rides/complete/${id}`, { method: 'POST' });
-        if (res.ok) {
-            alert('Ride marked as completed');
-            fetchAllRides();
-            fetchStats();
-        } else {
-            alert('Failed to complete ride');
+        try {
+            const res = await fetch(`/api/rides/complete/${id}`, { method: 'POST' });
+            const data = await res.json();
+            
+            if (res.ok) {
+                alert('Ride marked as completed');
+                fetchAllRides();
+                fetchStats();
+            } else {
+                alert('Failed to complete ride: ' + (data.error || 'Unknown error'));
+            }
+        } catch (error) {
+            alert('Failed to complete ride: Network error');
+            console.error('Complete ride error:', error);
         }
     };
 
     const deleteUser = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this user? This will also delete all their rides and bookings.')) return;
+        if (!confirm('Are you sure you want to delete this user? This will permanently delete:\n• All their rides\n• All their bookings\n• All their messages\n• All their ratings\n• All their locations\n• All their SOS alerts\n\nThis action cannot be undone!')) return;
         
-        const res = await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
-        if (res.ok) {
-            alert('User deleted successfully');
-            fetchAllUsers();
-            fetchStats();
-        } else {
-            const error = await res.json();
-            alert('Failed to delete user: ' + (error.error || 'Unknown error'));
+        try {
+            const res = await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            
+            if (res.ok) {
+                alert('User deleted successfully');
+                fetchAllUsers();
+                fetchStats();
+            } else {
+                alert('Failed to delete user: ' + (data.error || 'Unknown error'));
+                console.error('Delete user error:', data);
+            }
+        } catch (error) {
+            alert('Failed to delete user: Network error');
+            console.error('Delete user error:', error);
         }
     };
 

@@ -1,7 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { PlusCircle, Car as CarIcon, Bike, MapPin } from 'lucide-react';
+import { PlusCircle, Car as CarIcon, Bike, MapPin, Navigation } from 'lucide-react';
 import { User as UserType } from '../types';
 import { LocationPicker } from '../components/ride/LocationPicker';
 
@@ -45,6 +45,32 @@ export const OfferRide = ({ user }: { user: UserType | null }) => {
         console.log('Destination selected:', location);
     };
 
+    const handleUseCurrentLocation = () => {
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    
+                    try {
+                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`);
+                        const data = await res.json();
+                        let locationName = 'Current Location';
+                        if (data && data.display_name) {
+                            locationName = data.display_name;
+                        }
+                        handleOriginSelect({ name: locationName, lat, lng });
+                    } catch (e) {
+                         handleOriginSelect({ name: `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`, lat, lng });
+                    }
+                },
+                (error) => alert('Could not get your location: ' + error.message)
+            );
+        } else {
+            alert('Geolocation is not supported by your browser');
+        }
+    };
+
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         
@@ -84,26 +110,26 @@ export const OfferRide = ({ user }: { user: UserType | null }) => {
 
     return (
         <>
-            <div className="max-w-2xl mx-auto px-4 py-16">
+            <div className="max-w-2xl mx-auto px-4 py-8 md:py-16">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="glass-card p-12"
+                    className="glass-card p-6 md:p-12"
                 >
-                <div className="mb-10">
-                    <h2 className="text-4xl font-display font-black tracking-tight">Offer a Ride</h2>
-                    <p className="text-slate-500 mt-2 font-medium">Share your journey and help Agra travel better.</p>
+                <div className="mb-8 md:mb-10">
+                    <h2 className="text-3xl md:text-4xl font-display font-black tracking-tight">Offer a Ride</h2>
+                    <p className="text-slate-500 mt-2 font-medium text-sm md:text-base">Share your journey and help Agra travel better.</p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-8">
+                <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
                     {/* Vehicle Selection */}
                     <div className="space-y-3">
                         <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Vehicle Type</label>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <button
                                 type="button"
                                 onClick={() => setFormData({ ...formData, vehicle_type: '4-wheeler', available_seats: 3 })}
-                                className={`flex items-center justify-center gap-3 py-4 rounded-2xl font-bold transition-all border ${formData.vehicle_type === '4-wheeler'
+                                className={`flex items-center justify-center gap-3 py-3 md:py-4 rounded-xl md:rounded-2xl font-bold transition-all border ${formData.vehicle_type === '4-wheeler'
                                     ? 'bg-primary text-white border-primary shadow-lg shadow-orange-200'
                                     : 'bg-slate-50 text-slate-400 border-slate-100 hover:bg-slate-100'
                                     }`}
@@ -113,7 +139,7 @@ export const OfferRide = ({ user }: { user: UserType | null }) => {
                             <button
                                 type="button"
                                 onClick={() => setFormData({ ...formData, vehicle_type: '2-wheeler', available_seats: 1 })}
-                                className={`flex items-center justify-center gap-3 py-4 rounded-2xl font-bold transition-all border ${formData.vehicle_type === '2-wheeler'
+                                className={`flex items-center justify-center gap-3 py-3 md:py-4 rounded-xl md:rounded-2xl font-bold transition-all border ${formData.vehicle_type === '2-wheeler'
                                     ? 'bg-primary text-white border-primary shadow-lg shadow-orange-200'
                                     : 'bg-slate-50 text-slate-400 border-slate-100 hover:bg-slate-100'
                                     }`}
@@ -124,7 +150,7 @@ export const OfferRide = ({ user }: { user: UserType | null }) => {
                     </div>
 
                     <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 ml-1">Vehicle Details (e.g. Amaze White, Pulsar Black)</label>
+                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 md:mb-3 ml-1">Vehicle Details (e.g. Amaze White, Pulsar Black)</label>
                         <input
                             placeholder="e.g. Honda Amaze (White) - UP80 AB 1234"
                             className="input-field"
@@ -134,30 +160,40 @@ export const OfferRide = ({ user }: { user: UserType | null }) => {
                         />
                     </div>
 
-                    <div className="grid md:grid-cols-2 gap-8">
+                    <div className="grid sm:grid-cols-2 gap-6 md:gap-8">
                         <div>
-                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 ml-1">Pickup Point</label>
+                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 md:mb-3 ml-1">Pickup Point</label>
                             <div className="relative">
                                 <input
                                     placeholder="e.g. Dayalbagh"
-                                    className={`input-field pr-12 ${formData.origin_lat && formData.origin_lng ? 'font-bold text-slate-800' : ''}`}
+                                    className={`input-field pr-[80px] ${formData.origin_lat && formData.origin_lng ? 'font-bold text-slate-800' : ''}`}
                                     value={formData.origin}
                                     onChange={e => setFormData({ ...formData, origin: e.target.value })}
                                     required
                                     readOnly={!!(formData.origin_lat && formData.origin_lng)}
                                 />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowOriginPicker(true)}
-                                    className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-colors ${
-                                        formData.origin_lat && formData.origin_lng 
-                                            ? 'bg-green-500 hover:bg-green-600 text-white' 
-                                            : 'bg-primary/10 hover:bg-primary/20 text-primary'
-                                    }`}
-                                    title="Pick on Map"
-                                >
-                                    <MapPin className="w-5 h-5" />
-                                </button>
+                                <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-white pr-1">
+                                    <button
+                                        type="button"
+                                        onClick={handleUseCurrentLocation}
+                                        className="p-2 rounded-xl transition-colors bg-blue-50 hover:bg-blue-100 text-blue-600 shadow-sm"
+                                        title="Use Current Location"
+                                    >
+                                        <Navigation className="w-5 h-5" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowOriginPicker(true)}
+                                        className={`p-2 rounded-xl transition-colors shadow-sm ${
+                                            formData.origin_lat && formData.origin_lng 
+                                                ? 'bg-green-500 hover:bg-green-600 text-white' 
+                                                : 'bg-primary/10 hover:bg-primary/20 text-primary'
+                                        }`}
+                                        title="Pick on Map"
+                                    >
+                                        <MapPin className="w-5 h-5" />
+                                    </button>
+                                </div>
                             </div>
                             {formData.origin_lat && formData.origin_lng && (
                                 <div className="mt-2 flex items-center gap-2">
@@ -175,7 +211,7 @@ export const OfferRide = ({ user }: { user: UserType | null }) => {
                             )}
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 ml-1">Drop Point</label>
+                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 md:mb-3 ml-1">Drop Point</label>
                             <div className="relative">
                                 <input
                                     placeholder="e.g. Sanjay Place"
@@ -215,9 +251,9 @@ export const OfferRide = ({ user }: { user: UserType | null }) => {
                         </div>
                     </div>
 
-                    <div className="grid md:grid-cols-2 gap-8">
+                    <div className="grid sm:grid-cols-2 gap-6 md:gap-8">
                         <div>
-                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 ml-1">Departure Time</label>
+                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 md:mb-3 ml-1">Departure Time</label>
                             <input
                                 type="datetime-local"
                                 className="input-field"
@@ -227,7 +263,7 @@ export const OfferRide = ({ user }: { user: UserType | null }) => {
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 ml-1">Price per Seat (₹)</label>
+                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 md:mb-3 ml-1">Price per Seat (₹)</label>
                             <input
                                 type="number"
                                 value={formData.price_per_seat}
@@ -239,14 +275,14 @@ export const OfferRide = ({ user }: { user: UserType | null }) => {
                     </div>
 
                     <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 ml-1">Available Seats</label>
-                        <div className="flex gap-4">
+                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 md:mb-3 ml-1">Available Seats</label>
+                        <div className="flex flex-wrap gap-2 md:gap-4">
                             {(formData.vehicle_type === '4-wheeler' ? [1, 2, 3, 4, 5, 6] : [1]).map(num => (
                                 <button
                                     key={num}
                                     type="button"
                                     onClick={() => setFormData({ ...formData, available_seats: num })}
-                                    className={`flex-1 py-4 rounded-2xl font-bold transition-all ${formData.available_seats === num
+                                    className={`flex-1 min-w-[3rem] md:min-w-0 py-3 md:py-4 rounded-xl md:rounded-2xl font-bold transition-all ${formData.available_seats === num
                                         ? 'bg-primary text-white shadow-lg shadow-orange-200'
                                         : 'bg-slate-50 text-slate-400 border border-slate-100 hover:bg-slate-100'
                                         }`}
@@ -257,8 +293,8 @@ export const OfferRide = ({ user }: { user: UserType | null }) => {
                         </div>
                     </div>
 
-                    <button className="btn-primary w-full py-5 text-lg mt-4 flex items-center justify-center gap-3">
-                        <PlusCircle className="w-6 h-6" /> Publish Ride
+                    <button className="btn-primary w-full py-4 md:py-5 text-base md:text-lg mt-2 md:mt-4 flex items-center justify-center gap-2 md:gap-3">
+                        <PlusCircle className="w-5 h-5 md:w-6 md:h-6" /> Publish Ride
                     </button>
                 </form>
             </motion.div>

@@ -113,8 +113,8 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
     };
 
     return (
-        <div className="max-w-5xl mx-auto px-4 py-16">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+        <div className="max-w-5xl mx-auto px-4 py-8 md:py-16">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6 mb-8 md:mb-12">
                 <div>
                     <h2 className="text-4xl font-display font-black tracking-tight">Available Rides</h2>
                     <p className="text-slate-500 mt-2 font-medium">Find commuters traveling your way in Agra</p>
@@ -146,9 +146,9 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
                                 layout
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className={`bg-white rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-slate-200 transition-all overflow-hidden group ${isDisabled && !isOwnRide ? 'opacity-60' : ''} ${isOwnRide ? 'border-2 border-primary/30 bg-primary/5' : ''}`}
+                                className={`bg-white rounded-[2rem] md:rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-slate-200 transition-all overflow-hidden group ${isDisabled && !isOwnRide ? 'opacity-60' : ''} ${isOwnRide ? 'border-2 border-primary/30 bg-primary/5' : ''}`}
                             >
-                                <div className="p-8 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+                                <div className="p-6 md:p-8 flex flex-col lg:flex-row lg:items-center justify-between gap-6 md:gap-8">
                                     <div className="flex-1">
                                         <div className="flex items-center gap-5 mb-6">
                                             <div className="w-14 h-14 rounded-[1.25rem] bg-slate-50 flex items-center justify-center border border-slate-100 group-hover:bg-primary/5 transition-colors">
@@ -179,19 +179,22 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-10">
+                                        <div className="flex flex-wrap items-center gap-4 md:gap-10">
                                             <div className="flex flex-col">
-                                                <span className="text-[10px] text-slate-400 uppercase tracking-[0.2em] font-black mb-2">Pickup</span>
-                                                <span className="font-display font-bold text-lg text-ink">{ride.origin}</span>
+                                                <span className="text-[10px] text-slate-400 uppercase tracking-[0.2em] font-black mb-1 md:mb-2">Pickup</span>
+                                                <span className="font-display font-bold text-base md:text-lg text-ink truncate">{ride.origin}</span>
                                             </div>
-                                            <div className="flex flex-col items-center justify-center">
+                                            <div className="flex flex-col items-center justify-center shrink-0 hidden sm:block">
                                                 <div className="w-8 h-px bg-slate-200 relative">
                                                     <ChevronRight className="absolute -top-2 -right-2 w-4 h-4 text-slate-300" />
                                                 </div>
                                             </div>
+                                            <div className="flex flex-col items-center justify-center shrink-0 sm:hidden">
+                                                <ChevronRight className="w-4 h-4 text-slate-300" />
+                                            </div>
                                             <div className="flex flex-col">
-                                                <span className="text-[10px] text-slate-400 uppercase tracking-[0.2em] font-black mb-2">Dropoff</span>
-                                                <span className="font-display font-bold text-lg text-ink">{ride.destination}</span>
+                                                <span className="text-[10px] text-slate-400 uppercase tracking-[0.2em] font-black mb-1 md:mb-2">Dropoff</span>
+                                                <span className="font-display font-bold text-base md:text-lg text-ink truncate">{ride.destination}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -255,7 +258,7 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
                                             exit={{ height: 0, opacity: 0 }}
                                             className="bg-slate-50/50 border-t border-slate-100"
                                         >
-                                            <div className="p-10 grid md:grid-cols-2 gap-12">
+                                            <div className="p-6 md:p-10 grid md:grid-cols-2 gap-8 md:gap-12">
                                                 <div className="space-y-6">
                                                     <h5 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2">
                                                         <Shield className="w-4 h-4 text-primary" /> Driver Insights
