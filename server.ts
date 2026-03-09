@@ -1,16 +1,43 @@
+/**
+ * AgraRide Backend Server
+ * 
+ * This is the main Express.js server that handles:
+ * - User authentication (register/login)
+ * - Ride management (CRUD operations)
+ * - Booking system with counter-offer functionality
+ * - Real-time location tracking
+ * - Chat/messaging between users
+ * - Rating system for drivers and passengers
+ * - SOS emergency alerts
+ * - Admin dashboard APIs
+ * - Database management endpoints
+ */
+
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import db from "./db.ts";
 
+/**
+ * Initialize and start the Express server
+ * Configures middleware, API routes, and Vite dev server
+ */
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  // Parse JSON request bodies
   app.use(express.json());
 
   // --- API Routes ---
 
-  // Auth
+  // ========== AUTHENTICATION ENDPOINTS ==========
+  
+  /**
+   * POST /api/register
+   * Register a new user account
+   * Body: { name, email, password, phone, gender, vehicle_type }
+   * Returns: User object with id, name, email, role, gender, vehicle_type
+   */
   app.post("/api/register", (req, res) => {
     const { name, email, password, phone, gender, vehicle_type } = req.body;
     try {
@@ -21,6 +48,12 @@ async function startServer() {
     }
   });
 
+  /**
+   * POST /api/login
+   * Authenticate user and return user data
+   * Body: { email, password }
+   * Returns: User object or 401 error
+   */
   app.post("/api/login", (req, res) => {
     const { email, password } = req.body;
     const user = db.prepare('SELECT * FROM users WHERE email = ? AND password = ?').get(email, password) as any;
@@ -31,7 +64,13 @@ async function startServer() {
     }
   });
 
-  // Rides
+  // ========== RIDE MANAGEMENT ENDPOINTS ==========
+  
+  /**
+   * GET /api/rides
+   * Fetch all active rides with driver information
+   * Returns: Array of ride objects with driver details
+   */
   app.get("/api/rides", (req, res) => {
     const rides = db.prepare(`
       SELECT r.*, u.name as driver_name, u.gender as driver_gender, u.vehicle_type as driver_vehicle, u.phone as driver_phone
@@ -107,7 +146,14 @@ async function startServer() {
     }
   });
 
-  // Bookings
+  // ========== BOOKING MANAGEMENT ENDPOINTS ==========
+  
+  /**
+   * POST /api/bookings
+   * Create a new booking request (with optional counter-offer)
+   * Body: { ride_id, passenger_id, seats_booked, counter_offer_price? }
+   * Returns: Success message or error
+   */
   app.post("/api/bookings", (req, res) => {
     const { ride_id, passenger_id, seats_booked, counter_offer_price } = req.body;
     try {
@@ -186,7 +232,13 @@ async function startServer() {
     res.json({ hasBooked: !!booking, booking });
   });
 
-  // Admin Stats
+  // ========== ADMIN DASHBOARD ENDPOINTS ==========
+  
+  /**
+   * GET /api/admin/stats
+   * Fetch comprehensive system statistics for admin dashboard
+   * Returns: { users, rides, bookings, recentRides, detailedBookings, activeSOS }
+   */
   app.get("/api/admin/stats", (req, res) => {
     const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get() as any;
     const rideCount = db.prepare('SELECT COUNT(*) as count FROM rides').get() as any;
@@ -308,7 +360,14 @@ async function startServer() {
     }
   });
 
-  // SOS API
+  // ========== SOS EMERGENCY ALERT ENDPOINTS ==========
+  
+  /**
+   * POST /api/sos
+   * Create an emergency SOS alert for a ride
+   * Body: { ride_id, user_id }
+   * Returns: Success confirmation
+   */
   app.post("/api/sos", (req, res) => {
     const { ride_id, user_id } = req.body;
     try {
@@ -329,7 +388,13 @@ async function startServer() {
     }
   });
 
-  // Chat API
+  // ========== CHAT/MESSAGING ENDPOINTS ==========
+  
+  /**
+   * GET /api/messages/:rideId
+   * Fetch all messages for a specific ride
+   * Returns: Array of message objects with sender information
+   */
   app.get("/api/messages/:rideId", (req, res) => {
     const { rideId } = req.params;
     const messages = db.prepare(`
@@ -372,7 +437,14 @@ async function startServer() {
     res.json(chats);
   });
 
-  // Ratings API
+  // ========== RATING SYSTEM ENDPOINTS ==========
+  
+  /**
+   * POST /api/ratings
+   * Submit a rating for a user after a completed ride
+   * Body: { ride_id, rater_id, rated_user_id, rating, comment }
+   * Returns: Success confirmation
+   */
   app.post("/api/ratings", (req, res) => {
     const { ride_id, rater_id, rated_user_id, rating, comment } = req.body;
     try {
@@ -400,7 +472,14 @@ async function startServer() {
     res.json({ ratings, average: avgRating.avg || 0 });
   });
 
-  // Location API
+  // ========== REAL-TIME LOCATION TRACKING ENDPOINTS ==========
+  
+  /**
+   * POST /api/locations
+   * Update or create location data for a user in a ride
+   * Body: { ride_id, user_id, latitude, longitude }
+   * Returns: Success confirmation
+   */
   app.post("/api/locations", (req, res) => {
     const { ride_id, user_id, latitude, longitude } = req.body;
     try {
@@ -429,7 +508,13 @@ async function startServer() {
     res.json(locations);
   });
 
-  // Admin DB Management
+  // ========== DATABASE MANAGEMENT ENDPOINTS (Admin Only) ==========
+  
+  /**
+   * GET /api/admin/db/tables
+   * List all database tables
+   * Returns: Array of table names
+   */
   app.get("/api/admin/db/tables", (req, res) => {
     try {
       const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all();
