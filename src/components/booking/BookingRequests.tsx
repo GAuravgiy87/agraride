@@ -42,16 +42,16 @@ export const BookingRequests = ({ user }: { user: UserType }) => {
                             key={req.id}
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
-                            className={`bg-white p-8 rounded-[3rem] border-2 shadow-xl ${
+                            className={`bg-white p-6 rounded-lg border-2 shadow-sm hover:shadow-md transition-all ${
                                 hasCounterOffer 
-                                    ? 'border-orange-200 shadow-orange-100/50' 
-                                    : 'border-primary/10 shadow-orange-100/50'
+                                    ? 'border-orange-200' 
+                                    : 'border-primary/10'
                             }`}
                         >
-                            <div className="flex flex-col lg:flex-row justify-between gap-8">
-                                <div className="flex items-start gap-6 flex-1">
-                                    <div className="w-16 h-16 rounded-3xl bg-primary/5 flex items-center justify-center border border-primary/10 flex-shrink-0">
-                                        <User className="text-primary w-8 h-8" />
+                            <div className="flex flex-col lg:flex-row justify-between gap-6">
+                                <div className="flex items-start gap-4 flex-1">
+                                    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20 flex-shrink-0">
+                                        <User className="text-primary w-6 h-6" />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <h4 className="text-xl font-bold text-ink mb-2">{req.passenger_name}</h4>
@@ -73,7 +73,7 @@ export const BookingRequests = ({ user }: { user: UserType }) => {
                                         )}
                                         
                                         {/* Price Information */}
-                                        <div className="mt-4 p-4 bg-slate-50 rounded-2xl">
+                                        <div className="mt-4 p-4 bg-slate-50 rounded-lg">
                                             {hasCounterOffer ? (
                                                 <div className="space-y-3">
                                                     <div className="flex items-center gap-2 mb-2">
@@ -113,7 +113,7 @@ export const BookingRequests = ({ user }: { user: UserType }) => {
                                 
                                 <div className="flex flex-col gap-3 lg:min-w-[200px]">
                                     {hasCounterOffer && (
-                                        <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 mb-2">
+                                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-2">
                                             <p className="text-xs font-black text-orange-800 text-center">
                                                 Accept counter offer of ₹{offerPrice}?
                                             </p>
@@ -121,17 +121,17 @@ export const BookingRequests = ({ user }: { user: UserType }) => {
                                     )}
                                     <button
                                         onClick={() => handleAction(req.id, 'accept')}
-                                        className={`text-white px-8 py-4 rounded-2xl font-bold transition-all shadow-lg ${
+                                        className={`text-white px-6 py-3 rounded-lg font-bold transition-all shadow-sm ${
                                             hasCounterOffer 
-                                                ? 'bg-orange-500 hover:bg-orange-600 shadow-orange-200' 
-                                                : 'bg-primary hover:bg-orange-600 shadow-orange-200'
+                                                ? 'bg-orange-500 hover:bg-orange-600' 
+                                                : 'bg-primary hover:bg-primary-dark'
                                         }`}
                                     >
                                         {hasCounterOffer ? `Accept ₹${offerPrice}` : 'Accept'}
                                     </button>
                                     <button
                                         onClick={() => handleAction(req.id, 'reject')}
-                                        className="bg-white text-slate-400 border border-slate-200 px-8 py-4 rounded-2xl font-bold hover:bg-slate-50 transition-all"
+                                        className="bg-white text-slate-400 border border-slate-200 px-6 py-3 rounded-lg font-bold hover:bg-slate-50 transition-all"
                                     >
                                         Reject
                                     </button>

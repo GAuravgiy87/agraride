@@ -34,12 +34,12 @@ export const RatingModal = ({ ride, currentUser, onClose }: { ride: any, current
             <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl"
+                className="bg-white rounded-lg p-8 max-w-md w-full shadow-lg"
             >
-                <h3 className="text-2xl font-display font-bold mb-2">Rate your journey</h3>
+                <h3 className="text-2xl font-display font-bold mb-2 text-primary">Rate your journey</h3>
                 <p className="text-slate-500 mb-8 text-sm">How was your ride with {ride.driver_name}?</p>
 
-                <form onSubmit={handleSubmit} className="space-y-8">
+                <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="flex flex-col items-center gap-4">
                         <StarRating rating={rating} onRate={setRating} size="lg" />
                         <span className="text-lg font-bold text-slate-700">
@@ -49,7 +49,7 @@ export const RatingModal = ({ ride, currentUser, onClose }: { ride: any, current
 
                     <textarea
                         placeholder="Share your experience (optional)..."
-                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-sm outline-none focus:ring-2 focus:ring-primary h-32 resize-none"
+                        className="w-full bg-slate-50 border border-slate-100 rounded-lg p-4 text-sm outline-none focus:ring-2 focus:ring-primary h-32 resize-none"
                         value={comment}
                         onChange={e => setComment(e.target.value)}
                     />
@@ -58,13 +58,13 @@ export const RatingModal = ({ ride, currentUser, onClose }: { ride: any, current
                         <button
                             type="button"
                             onClick={onClose}
-                            className="flex-1 py-4 rounded-2xl font-bold text-slate-500 hover:bg-slate-50 transition-colors"
+                            className="flex-1 py-3 rounded-lg font-bold text-slate-500 hover:bg-slate-50 transition-colors"
                         >
                             Skip
                         </button>
                         <button
                             disabled={submitting}
-                            className="flex-1 bg-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-orange-200 hover:bg-orange-600 transition-all"
+                            className="flex-1 bg-primary text-white py-3 rounded-lg font-bold hover:bg-primary-dark transition-all"
                         >
                             {submitting ? 'Submitting...' : 'Submit Rating'}
                         </button>

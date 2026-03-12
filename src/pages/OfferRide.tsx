@@ -32,7 +32,6 @@ export const OfferRide = ({ user }: { user: UserType | null }) => {
             origin_lat: location.lat,
             origin_lng: location.lng
         }));
-        console.log('Origin selected:', location);
     };
 
     const handleDestSelect = (location: { name: string; lat: number; lng: number }) => {
@@ -42,7 +41,6 @@ export const OfferRide = ({ user }: { user: UserType | null }) => {
             dest_lat: location.lat,
             dest_lng: location.lng
         }));
-        console.log('Destination selected:', location);
     };
 
     const handleUseCurrentLocation = () => {
@@ -89,8 +87,6 @@ export const OfferRide = ({ user }: { user: UserType | null }) => {
             dest_lng: formData.dest_lng
         };
         
-        console.log('Submitting ride data:', rideData);
-        
         const res = await fetch('/api/rides', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -98,226 +94,236 @@ export const OfferRide = ({ user }: { user: UserType | null }) => {
         });
         
         if (res.ok) {
-            const result = await res.json();
-            console.log('Ride created:', result);
             navigate('/search');
         } else {
             const error = await res.json();
-            console.error('Failed to create ride:', error);
             alert('Failed to create ride: ' + (error.error || 'Unknown error'));
         }
     };
 
     return (
         <>
-            <div className="max-w-2xl mx-auto px-4 py-8 md:py-16">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="glass-card p-6 md:p-12"
-                >
-                <div className="mb-8 md:mb-10">
-                    <h2 className="text-3xl md:text-4xl font-display font-black tracking-tight">Offer a Ride</h2>
-                    <p className="text-slate-500 mt-2 font-medium text-sm md:text-base">Share your journey and help Agra travel better.</p>
+            <div className="min-h-screen bg-gray-50">
+                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="card-elevated p-8"
+                    >
+                        <div className="mb-8">
+                            <h1 className="text-3xl font-bold text-gray-900">Offer a Ride</h1>
+                            <p className="text-gray-600 mt-2">Share your journey and help Agra travel better.</p>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="space-y-8">
+                            {/* Vehicle Selection */}
+                            <div className="space-y-4">
+                                <label className="block text-sm font-semibold text-gray-900">Vehicle Type</label>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData({ ...formData, vehicle_type: '4-wheeler', available_seats: 3 })}
+                                        className={`flex items-center justify-center space-x-3 py-4 px-6 rounded-lg font-semibold transition-all border-2 ${formData.vehicle_type === '4-wheeler'
+                                            ? 'bg-orange-600 text-white border-orange-600 shadow-lg shadow-orange-200/50'
+                                            : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+                                            }`}
+                                    >
+                                        <CarIcon className="w-5 h-5" />
+                                        <span>4-Wheeler</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData({ ...formData, vehicle_type: '2-wheeler', available_seats: 1 })}
+                                        className={`flex items-center justify-center space-x-3 py-4 px-6 rounded-lg font-semibold transition-all border-2 ${formData.vehicle_type === '2-wheeler'
+                                            ? 'bg-orange-600 text-white border-orange-600 shadow-lg shadow-orange-200/50'
+                                            : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+                                            }`}
+                                    >
+                                        <Bike className="w-5 h-5" />
+                                        <span>2-Wheeler</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Vehicle Details */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-900 mb-3">Vehicle Details</label>
+                                <input
+                                    placeholder="e.g. Honda Amaze (White) - UP80 AB 1234"
+                                    className="input-field"
+                                    value={formData.vehicle_description}
+                                    onChange={e => setFormData({ ...formData, vehicle_description: e.target.value })}
+                                    required
+                                />
+                                <p className="text-xs text-gray-500 mt-2">Include make, model, color, and license plate for easy identification</p>
+                            </div>
+
+                            {/* Location Fields */}
+                            <div className="grid sm:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-900 mb-3">Pickup Point</label>
+                                    <div className="relative">
+                                        <input
+                                            placeholder="e.g. Dayalbagh"
+                                            className={`input-field pr-20 ${formData.origin_lat && formData.origin_lng ? 'font-semibold text-gray-800' : ''}`}
+                                            value={formData.origin}
+                                            onChange={e => setFormData({ ...formData, origin: e.target.value })}
+                                            required
+                                            readOnly={!!(formData.origin_lat && formData.origin_lng)}
+                                        />
+                                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center space-x-1">
+                                            <button
+                                                type="button"
+                                                onClick={handleUseCurrentLocation}
+                                                className="p-2 rounded-lg transition-colors bg-blue-50 hover:bg-blue-100 text-blue-600"
+                                                title="Use Current Location"
+                                            >
+                                                <Navigation className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowOriginPicker(true)}
+                                                className={`p-2 rounded-lg transition-colors ${
+                                                    formData.origin_lat && formData.origin_lng 
+                                                        ? 'bg-green-500 hover:bg-green-600 text-white' 
+                                                        : 'bg-orange-50 hover:bg-orange-100 text-orange-600'
+                                                }`}
+                                                title="Pick on Map"
+                                            >
+                                                <MapPin className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {formData.origin_lat && formData.origin_lng && (
+                                        <div className="mt-2 flex items-center justify-between">
+                                            <div className="text-xs text-green-600 font-mono">
+                                                ✓ Location pinned: {formData.origin_lat.toFixed(4)}, {formData.origin_lng.toFixed(4)}
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormData(prev => ({ ...prev, origin: '', origin_lat: null, origin_lng: null }))}
+                                                className="text-xs text-red-500 hover:text-red-700 font-medium"
+                                            >
+                                                Clear
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-900 mb-3">Drop Point</label>
+                                    <div className="relative">
+                                        <input
+                                            placeholder="e.g. Sanjay Place"
+                                            className={`input-field pr-12 ${formData.dest_lat && formData.dest_lng ? 'font-semibold text-gray-800' : ''}`}
+                                            value={formData.destination}
+                                            onChange={e => setFormData({ ...formData, destination: e.target.value })}
+                                            required
+                                            readOnly={!!(formData.dest_lat && formData.dest_lng)}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowDestPicker(true)}
+                                            className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-colors ${
+                                                formData.dest_lat && formData.dest_lng 
+                                                    ? 'bg-green-500 hover:bg-green-600 text-white' 
+                                                    : 'bg-orange-50 hover:bg-orange-100 text-orange-600'
+                                            }`}
+                                            title="Pick on Map"
+                                        >
+                                            <MapPin className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                    {formData.dest_lat && formData.dest_lng && (
+                                        <div className="mt-2 flex items-center justify-between">
+                                            <div className="text-xs text-green-600 font-mono">
+                                                ✓ Location pinned: {formData.dest_lat.toFixed(4)}, {formData.dest_lng.toFixed(4)}
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormData(prev => ({ ...prev, destination: '', dest_lat: null, dest_lng: null }))}
+                                                className="text-xs text-red-500 hover:text-red-700 font-medium"
+                                            >
+                                                Clear
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Time and Price */}
+                            <div className="grid sm:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-900 mb-3">Departure Time</label>
+                                    <input
+                                        type="datetime-local"
+                                        className="input-field"
+                                        value={formData.departure_time}
+                                        onChange={e => setFormData({ ...formData, departure_time: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-900 mb-3">Price per Seat (₹)</label>
+                                    <input
+                                        type="number"
+                                        min="10"
+                                        max="1000"
+                                        value={formData.price_per_seat}
+                                        className="input-field"
+                                        onChange={e => setFormData({ ...formData, price_per_seat: parseInt(e.target.value) })}
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Available Seats */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-900 mb-3">Available Seats</label>
+                                <div className="flex flex-wrap gap-3">
+                                    {(formData.vehicle_type === '4-wheeler' ? [1, 2, 3, 4, 5, 6] : [1]).map(num => (
+                                        <button
+                                            key={num}
+                                            type="button"
+                                            onClick={() => setFormData({ ...formData, available_seats: num })}
+                                            className={`w-12 h-12 rounded-lg font-bold transition-all border-2 ${formData.available_seats === num
+                                                ? 'bg-orange-600 text-white border-orange-600 shadow-lg shadow-orange-200/50'
+                                                : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+                                                }`}
+                                        >
+                                            {num}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Submit Button */}
+                            <button className="btn-primary w-full py-4 text-lg flex items-center justify-center space-x-3">
+                                <PlusCircle className="w-6 h-6" />
+                                <span>Publish Ride</span>
+                            </button>
+                        </form>
+                    </motion.div>
                 </div>
+            </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
-                    {/* Vehicle Selection */}
-                    <div className="space-y-3">
-                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Vehicle Type</label>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <button
-                                type="button"
-                                onClick={() => setFormData({ ...formData, vehicle_type: '4-wheeler', available_seats: 3 })}
-                                className={`flex items-center justify-center gap-3 py-3 md:py-4 rounded-xl md:rounded-2xl font-bold transition-all border ${formData.vehicle_type === '4-wheeler'
-                                    ? 'bg-primary text-white border-primary shadow-lg shadow-orange-200'
-                                    : 'bg-slate-50 text-slate-400 border-slate-100 hover:bg-slate-100'
-                                    }`}
-                            >
-                                <CarIcon className="w-5 h-5" /> 4-Wheeler
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setFormData({ ...formData, vehicle_type: '2-wheeler', available_seats: 1 })}
-                                className={`flex items-center justify-center gap-3 py-3 md:py-4 rounded-xl md:rounded-2xl font-bold transition-all border ${formData.vehicle_type === '2-wheeler'
-                                    ? 'bg-primary text-white border-primary shadow-lg shadow-orange-200'
-                                    : 'bg-slate-50 text-slate-400 border-slate-100 hover:bg-slate-100'
-                                    }`}
-                            >
-                                <Bike className="w-5 h-5" /> 2-Wheeler
-                            </button>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 md:mb-3 ml-1">Vehicle Details (e.g. Amaze White, Pulsar Black)</label>
-                        <input
-                            placeholder="e.g. Honda Amaze (White) - UP80 AB 1234"
-                            className="input-field"
-                            value={formData.vehicle_description}
-                            onChange={e => setFormData({ ...formData, vehicle_description: e.target.value })}
-                            required
-                        />
-                    </div>
-
-                    <div className="grid sm:grid-cols-2 gap-6 md:gap-8">
-                        <div>
-                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 md:mb-3 ml-1">Pickup Point</label>
-                            <div className="relative">
-                                <input
-                                    placeholder="e.g. Dayalbagh"
-                                    className={`input-field pr-[80px] ${formData.origin_lat && formData.origin_lng ? 'font-bold text-slate-800' : ''}`}
-                                    value={formData.origin}
-                                    onChange={e => setFormData({ ...formData, origin: e.target.value })}
-                                    required
-                                    readOnly={!!(formData.origin_lat && formData.origin_lng)}
-                                />
-                                <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-white pr-1">
-                                    <button
-                                        type="button"
-                                        onClick={handleUseCurrentLocation}
-                                        className="p-2 rounded-xl transition-colors bg-blue-50 hover:bg-blue-100 text-blue-600 shadow-sm"
-                                        title="Use Current Location"
-                                    >
-                                        <Navigation className="w-5 h-5" />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowOriginPicker(true)}
-                                        className={`p-2 rounded-xl transition-colors shadow-sm ${
-                                            formData.origin_lat && formData.origin_lng 
-                                                ? 'bg-green-500 hover:bg-green-600 text-white' 
-                                                : 'bg-primary/10 hover:bg-primary/20 text-primary'
-                                        }`}
-                                        title="Pick on Map"
-                                    >
-                                        <MapPin className="w-5 h-5" />
-                                    </button>
-                                </div>
-                            </div>
-                            {formData.origin_lat && formData.origin_lng && (
-                                <div className="mt-2 flex items-center gap-2">
-                                    <div className="flex items-center gap-1 text-xs text-green-600 font-mono">
-                                        ✓ Location pinned: {formData.origin_lat.toFixed(4)}, {formData.origin_lng.toFixed(4)}
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => setFormData(prev => ({ ...prev, origin: '', origin_lat: null, origin_lng: null }))}
-                                        className="text-xs text-red-500 hover:text-red-700 underline"
-                                    >
-                                        Clear
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 md:mb-3 ml-1">Drop Point</label>
-                            <div className="relative">
-                                <input
-                                    placeholder="e.g. Sanjay Place"
-                                    className={`input-field pr-12 ${formData.dest_lat && formData.dest_lng ? 'font-bold text-slate-800' : ''}`}
-                                    value={formData.destination}
-                                    onChange={e => setFormData({ ...formData, destination: e.target.value })}
-                                    required
-                                    readOnly={!!(formData.dest_lat && formData.dest_lng)}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowDestPicker(true)}
-                                    className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-xl transition-colors ${
-                                        formData.dest_lat && formData.dest_lng 
-                                            ? 'bg-green-500 hover:bg-green-600 text-white' 
-                                            : 'bg-primary/10 hover:bg-primary/20 text-primary'
-                                    }`}
-                                    title="Pick on Map"
-                                >
-                                    <MapPin className="w-5 h-5" />
-                                </button>
-                            </div>
-                            {formData.dest_lat && formData.dest_lng && (
-                                <div className="mt-2 flex items-center gap-2">
-                                    <div className="flex items-center gap-1 text-xs text-green-600 font-mono">
-                                        ✓ Location pinned: {formData.dest_lat.toFixed(4)}, {formData.dest_lng.toFixed(4)}
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => setFormData(prev => ({ ...prev, destination: '', dest_lat: null, dest_lng: null }))}
-                                        className="text-xs text-red-500 hover:text-red-700 underline"
-                                    >
-                                        Clear
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="grid sm:grid-cols-2 gap-6 md:gap-8">
-                        <div>
-                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 md:mb-3 ml-1">Departure Time</label>
-                            <input
-                                type="datetime-local"
-                                className="input-field"
-                                value={formData.departure_time}
-                                onChange={e => setFormData({ ...formData, departure_time: e.target.value })}
-                                required
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 md:mb-3 ml-1">Price per Seat (₹)</label>
-                            <input
-                                type="number"
-                                value={formData.price_per_seat}
-                                className="input-field"
-                                onChange={e => setFormData({ ...formData, price_per_seat: parseInt(e.target.value) })}
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 md:mb-3 ml-1">Available Seats</label>
-                        <div className="flex flex-wrap gap-2 md:gap-4">
-                            {(formData.vehicle_type === '4-wheeler' ? [1, 2, 3, 4, 5, 6] : [1]).map(num => (
-                                <button
-                                    key={num}
-                                    type="button"
-                                    onClick={() => setFormData({ ...formData, available_seats: num })}
-                                    className={`flex-1 min-w-[3rem] md:min-w-0 py-3 md:py-4 rounded-xl md:rounded-2xl font-bold transition-all ${formData.available_seats === num
-                                        ? 'bg-primary text-white shadow-lg shadow-orange-200'
-                                        : 'bg-slate-50 text-slate-400 border border-slate-100 hover:bg-slate-100'
-                                        }`}
-                                >
-                                    {num}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <button className="btn-primary w-full py-4 md:py-5 text-base md:text-lg mt-2 md:mt-4 flex items-center justify-center gap-2 md:gap-3">
-                        <PlusCircle className="w-5 h-5 md:w-6 md:h-6" /> Publish Ride
-                    </button>
-                </form>
-            </motion.div>
-        </div>
-
-        <AnimatePresence>
-            {showOriginPicker && (
-                <LocationPicker
-                    title="Select Pickup Point"
-                    initialLocation={formData.origin}
-                    onLocationSelect={handleOriginSelect}
-                    onClose={() => setShowOriginPicker(false)}
-                />
-            )}
-            {showDestPicker && (
-                <LocationPicker
-                    title="Select Drop Point"
-                    initialLocation={formData.destination}
-                    onLocationSelect={handleDestSelect}
-                    onClose={() => setShowDestPicker(false)}
-                />
-            )}
-        </AnimatePresence>
-    </>
+            <AnimatePresence>
+                {showOriginPicker && (
+                    <LocationPicker
+                        title="Select Pickup Point"
+                        initialLocation={formData.origin}
+                        onLocationSelect={handleOriginSelect}
+                        onClose={() => setShowOriginPicker(false)}
+                    />
+                )}
+                {showDestPicker && (
+                    <LocationPicker
+                        title="Select Drop Point"
+                        initialLocation={formData.destination}
+                        onLocationSelect={handleDestSelect}
+                        onClose={() => setShowDestPicker(false)}
+                    />
+                )}
+            </AnimatePresence>
+        </>
     );
 };

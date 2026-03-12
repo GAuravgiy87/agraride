@@ -45,9 +45,9 @@ export const Chat = ({ rideId, currentUser, otherUser }: { rideId: number, curre
     };
 
     return (
-        <div className="flex flex-col h-[400px] bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xl">
+        <div className="flex flex-col h-[400px] bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
             <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                     <User className="w-4 h-4 text-primary" />
                 </div>
                 <div>
@@ -59,9 +59,9 @@ export const Chat = ({ rideId, currentUser, otherUser }: { rideId: number, curre
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/30">
                 {messages.map((m, i) => (
                     <div key={i} className={`flex ${m.sender_id === currentUser.id ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${m.sender_id === currentUser.id
-                                ? 'bg-primary text-white rounded-tr-none shadow-md shadow-orange-100'
-                                : 'bg-white text-slate-700 border border-slate-100 rounded-tl-none shadow-sm'
+                        <div className={`max-w-[80%] p-3 rounded-lg text-sm ${m.sender_id === currentUser.id
+                                ? 'bg-primary text-white shadow-sm'
+                                : 'bg-white text-slate-700 border border-slate-100 shadow-sm'
                             }`}>
                             {m.content}
                         </div>
@@ -74,9 +74,9 @@ export const Chat = ({ rideId, currentUser, otherUser }: { rideId: number, curre
                     value={newMessage}
                     onChange={e => setNewMessage(e.target.value)}
                     placeholder="Type a message..."
-                    className="flex-1 bg-slate-100 px-4 py-2 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                    className="flex-1 bg-slate-100 px-4 py-2 rounded-lg text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                 />
-                <button className="bg-primary text-white p-2 rounded-xl hover:scale-105 transition-transform">
+                <button className="bg-primary text-white p-2 rounded-lg hover:scale-105 transition-transform">
                     <Send className="w-5 h-5" />
                 </button>
             </form>

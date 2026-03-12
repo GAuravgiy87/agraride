@@ -23,16 +23,16 @@ export const MyBookings = ({ user }: { user: UserType | null }) => {
     return (
         <div className="max-w-5xl mx-auto px-4 py-16">
             <div className="mb-12">
-                <h2 className="text-4xl font-display font-black tracking-tight">My Bookings</h2>
+                <h2 className="text-4xl font-display font-black tracking-tight text-primary">My Bookings</h2>
                 <p className="text-slate-500 mt-2 font-medium">Keep track of your upcoming and past journeys.</p>
             </div>
 
-            <div className="grid gap-8">
+            <div className="grid gap-6">
                 {bookings.map(booking => (
-                    <div key={booking.id} className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/50 flex flex-col md:flex-row md:items-center justify-between gap-6 group">
-                        <div className="flex items-center gap-6">
-                            <div className="w-16 h-16 rounded-[1.5rem] bg-slate-50 flex items-center justify-center border border-slate-100 group-hover:bg-primary/5 transition-colors">
-                                <Navigation className="text-slate-400 group-hover:text-primary transition-colors" />
+                    <div key={booking.id} className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-6 group">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20 group-hover:bg-primary/20 transition-colors">
+                                <Navigation className="text-primary w-5 h-5" />
                             </div>
                             <div>
                                 <div className="flex items-center gap-3 text-lg font-display font-bold text-ink mb-1">
@@ -45,9 +45,9 @@ export const MyBookings = ({ user }: { user: UserType | null }) => {
                                 </p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-6">
-                            <div className="flex flex-col items-end">
-                                <span className={`badge mb-2 ${booking.status === 'confirmed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                        <div className="flex items-center gap-4">
+                            <div className="flex flex-col items-end gap-2">
+                                <span className={`badge ${booking.status === 'confirmed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
                                         booking.status === 'rejected' ? 'bg-red-50 text-red-600 border border-red-100' :
                                             'bg-orange-50 text-orange-600 border border-orange-100'
                                     }`}>
@@ -67,7 +67,7 @@ export const MyBookings = ({ user }: { user: UserType | null }) => {
                                         origin: booking.origin,
                                         destination: booking.destination
                                     })}
-                                    className="btn-secondary !bg-blue-600 !text-white !border-none !py-3 !px-8 text-sm flex items-center gap-2"
+                                    className="bg-primary text-white px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 hover:bg-primary-dark transition-all"
                                 >
                                     <Navigation className="w-4 h-4" /> Track Live
                                 </button>
@@ -75,7 +75,7 @@ export const MyBookings = ({ user }: { user: UserType | null }) => {
                             {booking.ride_status === 'completed' && booking.status === 'confirmed' && (
                                 <button
                                     onClick={() => setRatingRide({ id: booking.ride_id, driver_id: booking.driver_id, driver_name: booking.driver_name })}
-                                    className="btn-primary !py-3 !px-8 text-sm"
+                                    className="btn-primary text-sm"
                                 >
                                     Rate Ride
                                 </button>
@@ -84,8 +84,8 @@ export const MyBookings = ({ user }: { user: UserType | null }) => {
                     </div>
                 ))}
                 {bookings.length === 0 && (
-                    <div className="text-center py-32 bg-white rounded-[4rem] border border-dashed border-slate-200">
-                        <Navigation className="w-16 h-16 text-slate-100 mx-auto mb-6" />
+                    <div className="text-center py-20 bg-white rounded-lg border border-dashed border-slate-200">
+                        <Navigation className="w-16 h-16 text-slate-200 mx-auto mb-6" />
                         <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No bookings yet</p>
                     </div>
                 )}

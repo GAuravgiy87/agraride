@@ -1,16 +1,25 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Space Grotesk", sans-serif;
-  --color-primary: #f97316; /* Vibrant Orange */
+  --color-primary: #f97316; /* Professional Orange */
   --color-primary-dark: #ea580c;
-  --color-primary-light: #ffedd5;
-  --color-ink: #0f172a;
-  --color-paper: #f8fafc;
-  --radius-app: 2rem;
+  --color-primary-light: #fed7aa;
+  --color-primary-50: #fff7ed;
+  --color-primary-100: #ffedd5;
+  --color-primary-200: #fed7aa;
+  --color-primary-500: #f97316;
+  --color-primary-600: #ea580c;
+  --color-primary-700: #c2410c;
+  --color-primary-800: #9a3412;
+  --color-primary-900: #7c2d12;
+  --color-ink: #111827;
+  --color-paper: #f9fafb;
+  --color-surface: #ffffff;
+  --radius-app: 0.75rem;
 }
 
 @layer base {
@@ -25,23 +34,51 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-primary text-white px-6 py-3 rounded-2xl font-bold transition-all hover:bg-primary-dark hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-orange-200/50;
+    @apply bg-primary text-white px-6 py-3 rounded-xl font-semibold transition-all hover:bg-primary-dark hover:shadow-lg hover:shadow-orange-200/25 active:scale-[0.98] focus:ring-2 focus:ring-primary/20 focus:ring-offset-2;
   }
   
   .btn-secondary {
-    @apply bg-white text-ink border border-slate-200 px-6 py-3 rounded-2xl font-bold transition-all hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98];
+    @apply bg-white text-ink border border-gray-300 px-6 py-3 rounded-xl font-semibold transition-all hover:bg-gray-50 hover:border-gray-400 active:scale-[0.98] focus:ring-2 focus:ring-gray-200 focus:ring-offset-2;
   }
 
-  .glass-card {
-    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl rounded-[2.5rem];
+  .btn-outline {
+    @apply bg-transparent text-primary border-2 border-primary px-6 py-3 rounded-xl font-semibold transition-all hover:bg-primary hover:text-white active:scale-[0.98] focus:ring-2 focus:ring-primary/20 focus:ring-offset-2;
+  }
+
+  .card {
+    @apply bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all;
+  }
+
+  .card-elevated {
+    @apply bg-white border border-gray-200 rounded-xl shadow-lg hover:shadow-xl transition-all;
   }
   
   .input-field {
-    @apply w-full bg-slate-50 border border-slate-200 px-5 py-4 rounded-2xl outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-ink placeholder:text-slate-400;
+    @apply w-full bg-white border border-gray-300 px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-ink placeholder:text-gray-500;
   }
 
   .badge {
-    @apply px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider;
+    @apply px-3 py-1 rounded-md text-xs font-medium;
+  }
+
+  .badge-primary {
+    @apply bg-primary-100 text-primary-800 border border-primary-200;
+  }
+
+  .badge-success {
+    @apply bg-green-100 text-green-800 border border-green-200;
+  }
+
+  .badge-warning {
+    @apply bg-yellow-100 text-yellow-800 border border-yellow-200;
+  }
+
+  .badge-error {
+    @apply bg-red-100 text-red-800 border border-red-200;
+  }
+
+  .badge-neutral {
+    @apply bg-gray-100 text-gray-800 border border-gray-200;
   }
 }
 

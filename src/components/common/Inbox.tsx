@@ -21,14 +21,14 @@ export const Inbox = ({ user }: { user: UserType | null }) => {
     return (
         <div className="max-w-6xl mx-auto px-4 py-12">
             <div className="flex items-center gap-3 mb-10">
-                <div className="bg-primary/10 p-3 rounded-2xl">
+                <div className="bg-primary/10 p-3 rounded-lg">
                     <MessageSquare className="text-primary w-6 h-6" />
                 </div>
-                <h2 className="text-3xl font-display font-bold">Your Messages</h2>
+                <h2 className="text-3xl font-display font-bold text-primary">Your Messages</h2>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-8 h-[600px]">
-                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+            <div className="grid md:grid-cols-3 gap-6 h-[600px]">
+                <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden flex flex-col">
                     <div className="p-6 border-b border-slate-100 bg-slate-50/50">
                         <h3 className="font-bold text-slate-800">Active Conversations</h3>
                     </div>
@@ -66,7 +66,7 @@ export const Inbox = ({ user }: { user: UserType | null }) => {
                             otherUser={{ id: activeChat.other_party_id, name: activeChat.other_party_name }}
                         />
                     ) : (
-                        <div className="h-full bg-slate-50 rounded-[2.5rem] border border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400">
+                        <div className="h-full bg-slate-50 rounded-lg border border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400">
                             <MessageSquare className="w-16 h-16 mb-4 opacity-10" />
                             <p className="font-medium">Select a conversation to start chatting</p>
                         </div>

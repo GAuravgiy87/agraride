@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Shield, MessageSquare, User, LogOut, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { User as UserType } from '../../types';
@@ -8,64 +8,167 @@ import { AnimatedLogo } from './AnimatedLogo';
 export const Navbar = ({ user, onLogout }: { user: UserType | null, onLogout: () => void }) => {
     const [isOpen, setIsOpen] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
 
     const handleLogout = () => {
         onLogout();
         navigate('/');
     };
 
+    // Helper function to check if a path is active
+    const isActivePath = (path: string) => {
+        return location.pathname === path;
+    };
+
+    // Helper function to get active link classes
+    const getLinkClasses = (path: string, baseClasses: string = "text-gray-600 hover:text-orange-600 font-medium text-sm transition-colors") => {
+        if (isActivePath(path)) {
+            return `${baseClasses.replace('text-gray-600', 'text-orange-600')} relative`;
+        }
+        return baseClasses;
+    };
+
+    // Helper function to get mobile link classes
+    const getMobileLinkClasses = (path: string) => {
+        if (isActivePath(path)) {
+            return "block text-orange-600 font-semibold py-2 bg-orange-50 px-3 rounded-lg border-l-4 border-orange-600";
+        }
+        return "block text-gray-600 hover:text-orange-600 font-medium py-2";
+    };
+
     return (
-        <nav className="sticky top-0 z-50 bg-white border-b border-slate-200">
+        <nav className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between h-16">
-                    <div className="flex items-center">
-                        <AnimatedLogo />
+                    <div className="flex items-center relative">
+                        <div className={`transition-all duration-300 ${isActivePath('/') ? 'scale-105' : ''}`}>
+                            <AnimatedLogo />
+                        </div>
+                        {isActivePath('/') && (
+                            <motion.div
+                                layoutId="homeIndicator"
+                                className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-orange-600 rounded-full"
+                                initial={false}
+                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                            />
+                        )}
                     </div>
 
-                    {/* Desktop */}
-                    <div className="hidden md:flex items-center space-x-8">
+                    {/* Desktop Navigation */}
+                    <div className="hidden md:flex items-center space-x-6">
                         {user?.role === 'admin' ? (
                             <>
-                                <Link to="/admin" className="text-slate-500 hover:text-primary font-bold text-sm uppercase tracking-wider flex items-center gap-1">
-                                    <Shield className="w-4 h-4" /> Admin Dashboard
+                                <Link to="/admin" className={`${getLinkClasses('/admin')} flex items-center space-x-1`}>
+                                    <Shield className="w-4 h-4" />
+                                    <span>Admin Dashboard</span>
+                                    {isActivePath('/admin') && (
+                                        <motion.div
+                                            layoutId="activeIndicator"
+                                            className="absolute -bottom-4 left-0 right-0 h-0.5 bg-orange-600 rounded-full"
+                                            initial={false}
+                                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                        />
+                                    )}
                                 </Link>
-                                <Link to="/inbox" className="text-slate-500 hover:text-primary font-bold text-sm uppercase tracking-wider transition-colors flex items-center gap-2">
-                                    <MessageSquare className="w-4 h-4" /> Inbox
+                                <Link to="/inbox" className={`${getLinkClasses('/inbox')} flex items-center space-x-1`}>
+                                    <MessageSquare className="w-4 h-4" />
+                                    <span>Inbox</span>
+                                    {isActivePath('/inbox') && (
+                                        <motion.div
+                                            layoutId="activeIndicator"
+                                            className="absolute -bottom-4 left-0 right-0 h-0.5 bg-orange-600 rounded-full"
+                                            initial={false}
+                                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                        />
+                                    )}
                                 </Link>
                             </>
                         ) : (
                             <>
-                                <Link to="/search" className="text-slate-500 hover:text-primary font-bold text-sm uppercase tracking-wider transition-colors">Find a Ride</Link>
-                                <Link to="/offer" className="text-slate-500 hover:text-primary font-bold text-sm uppercase tracking-wider transition-colors">Offer a Ride</Link>
+                                <Link to="/search" className={getLinkClasses('/search')}>
+                                    Find a Ride
+                                    {isActivePath('/search') && (
+                                        <motion.div
+                                            layoutId="activeIndicator"
+                                            className="absolute -bottom-4 left-0 right-0 h-0.5 bg-orange-600 rounded-full"
+                                            initial={false}
+                                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                        />
+                                    )}
+                                </Link>
+                                <Link to="/offer" className={getLinkClasses('/offer')}>
+                                    Offer a Ride
+                                    {isActivePath('/offer') && (
+                                        <motion.div
+                                            layoutId="activeIndicator"
+                                            className="absolute -bottom-4 left-0 right-0 h-0.5 bg-orange-600 rounded-full"
+                                            initial={false}
+                                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                        />
+                                    )}
+                                </Link>
                                 {user && (
                                     <>
-                                        <Link to="/my-rides" className="text-slate-500 hover:text-primary font-bold text-sm uppercase tracking-wider transition-colors">My Rides</Link>
-                                        <Link to="/my-bookings" className="text-slate-500 hover:text-primary font-bold text-sm uppercase tracking-wider transition-colors">My Bookings</Link>
-                                        <Link to="/inbox" className="text-slate-500 hover:text-primary font-bold text-sm uppercase tracking-wider transition-colors flex items-center gap-2">
-                                            <MessageSquare className="w-4 h-4" /> Inbox
+                                        <Link to="/my-rides" className={getLinkClasses('/my-rides')}>
+                                            My Rides
+                                            {isActivePath('/my-rides') && (
+                                                <motion.div
+                                                    layoutId="activeIndicator"
+                                                    className="absolute -bottom-4 left-0 right-0 h-0.5 bg-orange-600 rounded-full"
+                                                    initial={false}
+                                                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                                />
+                                            )}
+                                        </Link>
+                                        <Link to="/my-bookings" className={getLinkClasses('/my-bookings')}>
+                                            My Bookings
+                                            {isActivePath('/my-bookings') && (
+                                                <motion.div
+                                                    layoutId="activeIndicator"
+                                                    className="absolute -bottom-4 left-0 right-0 h-0.5 bg-orange-600 rounded-full"
+                                                    initial={false}
+                                                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                                />
+                                            )}
+                                        </Link>
+                                        <Link to="/inbox" className={`${getLinkClasses('/inbox')} flex items-center space-x-1`}>
+                                            <MessageSquare className="w-4 h-4" />
+                                            <span>Inbox</span>
+                                            {isActivePath('/inbox') && (
+                                                <motion.div
+                                                    layoutId="activeIndicator"
+                                                    className="absolute -bottom-4 left-0 right-0 h-0.5 bg-orange-600 rounded-full"
+                                                    initial={false}
+                                                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                                />
+                                            )}
                                         </Link>
                                     </>
                                 )}
                             </>
                         )}
                         {user ? (
-                            <div className="flex items-center space-x-4 pl-4 border-l border-slate-100">
-                                <Link to="/profile" className="flex items-center space-x-2 text-ink bg-slate-50 px-4 py-2 rounded-full border border-slate-100 hover:bg-primary/5 hover:border-primary/20 transition-all">
-                                    <User className="w-4 h-4 text-primary" />
-                                    <span className="font-bold text-sm">{user.name}</span>
+                            <div className="flex items-center space-x-3 pl-6 border-l border-gray-200">
+                                <Link to="/profile" className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
+                                    isActivePath('/profile') 
+                                        ? 'text-orange-600 bg-orange-50 border border-orange-200' 
+                                        : 'text-gray-900 bg-gray-100 hover:bg-gray-200'
+                                }`}>
+                                    <User className="w-4 h-4 text-orange-600" />
+                                    <span className="font-semibold text-sm">{user.name}</span>
                                 </Link>
                                 <button
                                     onClick={handleLogout}
-                                    className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                                    className="p-2 text-gray-400 hover:text-red-500 transition-colors"
                                     title="Logout"
                                 >
-                                    <LogOut className="w-5 h-5" />
+                                    <LogOut className="w-4 h-4" />
                                 </button>
                             </div>
                         ) : (
                             <Link
                                 to="/login"
-                                className="btn-primary !py-2 !px-6 !text-sm"
+                                className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors text-sm font-semibold"
                             >
                                 Login
                             </Link>
@@ -74,8 +177,8 @@ export const Navbar = ({ user, onLogout }: { user: UserType | null, onLogout: ()
 
                     {/* Mobile menu button */}
                     <div className="md:hidden flex items-center">
-                        <button onClick={() => setIsOpen(!isOpen)} className="text-slate-600">
-                            {isOpen ? <X /> : <Menu />}
+                        <button onClick={() => setIsOpen(!isOpen)} className="text-gray-600 hover:text-gray-900 transition-colors">
+                            {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                         </button>
                     </div>
                 </div>
@@ -85,26 +188,27 @@ export const Navbar = ({ user, onLogout }: { user: UserType | null, onLogout: ()
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
-                        initial={{ opacity: 0, y: -20 }}
+                        initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        className="md:hidden bg-white border-b border-slate-200 px-4 pt-2 pb-6 space-y-4"
+                        exit={{ opacity: 0, y: -10 }}
+                        className="md:hidden bg-white border-b border-gray-200 px-4 pt-2 pb-6 space-y-3"
                     >
-                        <Link to="/search" className="block text-slate-600 font-medium" onClick={() => setIsOpen(false)}>Find a Ride</Link>
-                        <Link to="/offer" className="block text-slate-600 font-medium" onClick={() => setIsOpen(false)}>Offer a Ride</Link>
+                        <Link to="/" className={getMobileLinkClasses('/')} onClick={() => setIsOpen(false)}>Home</Link>
+                        <Link to="/search" className={getMobileLinkClasses('/search')} onClick={() => setIsOpen(false)}>Find a Ride</Link>
+                        <Link to="/offer" className={getMobileLinkClasses('/offer')} onClick={() => setIsOpen(false)}>Offer a Ride</Link>
                         {user && (
                             <>
-                                <Link to="/my-rides" className="block text-slate-600 font-medium" onClick={() => setIsOpen(false)}>My Rides</Link>
-                                <Link to="/my-bookings" className="block text-slate-600 font-medium" onClick={() => setIsOpen(false)}>My Bookings</Link>
-                                <Link to="/inbox" className="block text-slate-600 font-medium" onClick={() => setIsOpen(false)}>Inbox</Link>
-                                <Link to="/profile" className="block text-slate-600 font-medium" onClick={() => setIsOpen(false)}>Profile</Link>
+                                <Link to="/my-rides" className={getMobileLinkClasses('/my-rides')} onClick={() => setIsOpen(false)}>My Rides</Link>
+                                <Link to="/my-bookings" className={getMobileLinkClasses('/my-bookings')} onClick={() => setIsOpen(false)}>My Bookings</Link>
+                                <Link to="/inbox" className={getMobileLinkClasses('/inbox')} onClick={() => setIsOpen(false)}>Inbox</Link>
+                                <Link to="/profile" className={getMobileLinkClasses('/profile')} onClick={() => setIsOpen(false)}>Profile</Link>
                             </>
                         )}
-                        {user?.role === 'admin' && <Link to="/admin" className="block text-slate-600 font-medium" onClick={() => setIsOpen(false)}>Admin</Link>}
+                        {user?.role === 'admin' && <Link to="/admin" className={getMobileLinkClasses('/admin')} onClick={() => setIsOpen(false)}>Admin Dashboard</Link>}
                         {user ? (
-                            <button onClick={() => { handleLogout(); setIsOpen(false); }} className="w-full text-left text-red-500 font-medium">Logout</button>
+                            <button onClick={() => { handleLogout(); setIsOpen(false); }} className="w-full text-left text-red-500 font-medium py-2">Logout</button>
                         ) : (
-                            <Link to="/login" className="block bg-primary text-white text-center py-3 rounded-xl font-bold" onClick={() => setIsOpen(false)}>Login</Link>
+                            <Link to="/login" className="block bg-orange-600 text-white text-center py-3 rounded-lg font-semibold" onClick={() => setIsOpen(false)}>Login</Link>
                         )}
                     </motion.div>
                 )}

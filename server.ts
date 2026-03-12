@@ -64,6 +64,143 @@ async function startServer() {
     }
   });
 
+  /**
+   * PUT /api/users/:id
+   * Update user profile information
+   * Body: { name?, email?, password?, phone?, gender?, vehicle_type? }
+   * Returns: Updated user object or error
+   */
+  app.put("/api/users/:id", (req, res) => {
+    const { id } = req.params;
+    const { name, email, password, phone, gender, vehicle_type } = req.body;
+    
+    console.log(`PUT /api/users/${id} - Update request:`, { name, email, phone, gender, vehicle_type });
+    
+    try {
+      // Check if user exists
+      const existingUser = db.prepare('SELECT * FROM users WHERE id = ?').get(id) as any;
+      if (!existingUser) {
+        console.log(`User with ID ${id} not found`);
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      console.log('Existing user found:', { id: existingUser.id, name: existingUser.name, email: existingUser.email });
+
+      // Check if email is being changed and if it's already taken
+      if (email && email !== existingUser.email) {
+        const emailExists = db.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(email, id);
+        if (emailExists) {
+          console.log(`Email ${email} already in use by user ${emailExists.id}`);
+          return res.status(400).json({ error: "Email already in use" });
+        }
+      }
+
+      // Build update query dynamically based on provided fields
+      const updates: string[] = [];
+      const values: any[] = [];
+
+      if (name !== undefined && name !== existingUser.name) {
+        updates.push('name = ?');
+        values.push(name);
+        console.log('Updating name:', name);
+      }
+      if (email !== undefined && email !== existingUser.email) {
+        updates.push('email = ?');
+        values.push(email);
+        console.log('Updating email:', email);
+      }
+      if (password !== undefined && password.trim() !== '') {
+        updates.push('password = ?');
+        values.push(password);
+        console.log('Updating password');
+      }
+      if (phone !== undefined && phone !== existingUser.phone) {
+        updates.push('phone = ?');
+        values.push(phone);
+        console.log('Updating phone:', phone);
+      }
+      if (gender !== undefined && gender !== existingUser.gender) {
+        updates.push('gender = ?');
+        values.push(gender);
+        console.log('Updating gender:', gender);
+      }
+      if (vehicle_type !== undefined && vehicle_type !== existingUser.vehicle_type) {
+        updates.push('vehicle_type = ?');
+        values.push(vehicle_type);
+        console.log('Updating vehicle_type:', vehicle_type);
+      }
+
+      if (updates.length === 0) {
+        console.log('No fields to update');
+        return res.status(400).json({ error: "No changes detected" });
+      }
+
+      // Add id to values for WHERE clause
+      values.push(id);
+
+      // Execute update
+      const query = `UPDATE users SET ${updates.join(', ')} WHERE id = ?`;
+      console.log('Executing query:', query, 'with values:', values);
+      
+      const result = db.prepare(query).run(...values);
+      console.log('Update result:', result);
+
+      // Fetch and return updated user
+      const updatedUser = db.prepare('SELECT id, name, email, role, phone, gender, vehicle_type FROM users WHERE id = ?').get(id);
+      console.log('Updated user:', updatedUser);
+      
+      if (!updatedUser) {
+        console.log('Failed to fetch updated user');
+        return res.status(500).json({ error: "Failed to fetch updated user" });
+      }
+
+      res.json(updatedUser);
+    } catch (e: any) {
+      console.error('Update user error:', e);
+      res.status(500).json({ error: e.message || "Internal server error" });
+    }
+  });
+
+  /**
+   * GET /api/users/:id
+   * Get user profile information
+   * Returns: User object without password
+   */
+  app.get("/api/users/:id", (req, res) => {
+    const { id } = req.params;
+    console.log(`GET /api/users/${id} - Fetching user`);
+    try {
+      const user = db.prepare('SELECT id, name, email, role, phone, gender, vehicle_type FROM users WHERE id = ?').get(id);
+      if (!user) {
+        console.log(`User with ID ${id} not found`);
+        return res.status(404).json({ error: "User not found" });
+      }
+      console.log('User found:', user);
+      res.json(user);
+    } catch (e: any) {
+      console.error('Get user error:', e);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ========== DEBUG ENDPOINT ==========
+  
+  /**
+   * GET /api/debug/users
+   * List all users (for debugging)
+   * Returns: Array of all users
+   */
+  app.get("/api/debug/users", (req, res) => {
+    try {
+      const users = db.prepare('SELECT id, name, email, role FROM users').all();
+      console.log('All users in database:', users);
+      res.json(users);
+    } catch (e: any) {
+      console.error('Debug users error:', e);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // ========== RIDE MANAGEMENT ENDPOINTS ==========
   
   /**

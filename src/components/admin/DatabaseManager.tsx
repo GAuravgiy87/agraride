@@ -62,7 +62,7 @@ export const DatabaseManager = () => {
                 ))}
             </div>
 
-            <div className="bg-slate-900 p-8 rounded-[3rem] border border-slate-800 shadow-2xl">
+            <div className="bg-slate-900 p-6 rounded-lg border border-slate-800 shadow-sm">
                 <div className="flex items-center gap-4 mb-6">
                     <Database className="text-primary w-6 h-6" />
                     <h4 className="text-white font-display font-bold text-xl">SQL Console</h4>
@@ -71,7 +71,7 @@ export const DatabaseManager = () => {
                     value={query}
                     onChange={e => setQuery(e.target.value)}
                     placeholder="SELECT * FROM users WHERE role = 'admin'..."
-                    className="w-full bg-slate-800 text-emerald-400 font-mono p-6 rounded-2xl border border-slate-700 focus:border-primary outline-none min-h-[120px] text-sm"
+                    className="w-full bg-slate-800 text-emerald-400 font-mono p-4 rounded-lg border border-slate-700 focus:border-primary outline-none min-h-[120px] text-sm"
                 />
                 <div className="flex justify-between items-center mt-4">
                     <p className="text-slate-500 text-xs font-medium">Use standard SQLite syntax. Be careful with DELETE/DROP.</p>
@@ -85,15 +85,15 @@ export const DatabaseManager = () => {
             </div>
 
             {error && (
-                <div className="bg-red-50 text-red-600 p-4 rounded-2xl border border-red-100 text-sm font-medium flex items-center gap-2">
+                <div className="bg-red-50 text-red-600 p-4 rounded-lg border border-red-100 text-sm font-medium flex items-center gap-2">
                     <AlertCircle className="w-4 h-4" /> {error}
                 </div>
             )}
 
             {(selectedTable || queryResult) && (
-                <div className="bg-white rounded-[3rem] border border-slate-100 shadow-xl overflow-hidden">
-                    <div className="p-8 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between">
-                        <h4 className="text-xl font-display font-bold">
+                <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden">
+                    <div className="p-6 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between">
+                        <h4 className="text-xl font-display font-bold text-primary">
                             {selectedTable ? `Table: ${selectedTable}` : 'Query Result'}
                         </h4>
                         <span className="text-xs font-black text-slate-400 uppercase tracking-widest">
