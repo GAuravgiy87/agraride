@@ -28,7 +28,7 @@ const AppContent = ({ user, handleLogin, handleLogout }: {
   return (
     <div className="min-h-screen flex flex-col">
       {!isAuthPage && <Navbar user={user} onLogout={handleLogout} />}
-      <main className="flex-grow">
+      <main className={isAuthPage ? "flex-grow" : ""}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<AuthPage onLogin={handleLogin} />} />
@@ -43,7 +43,7 @@ const AppContent = ({ user, handleLogin, handleLogout }: {
         </Routes>
       </main>
 
-      {!isAuthPage && (
+      {!isAuthPage && location.pathname !== '/search' && (
         <footer className="bg-slate-900 text-slate-400 py-8 border-t border-slate-800">
           <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center space-x-2">
