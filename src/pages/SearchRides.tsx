@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, User, Clock, IndianRupee, ChevronRight, Shield, MessageSquare, TrendingUp, Navigation, Car, Map as MapIcon, Info, AlertCircle } from 'lucide-react';
+import { Search, User, Clock, IndianRupee, ChevronRight, Shield, MessageSquare, TrendingUp, Navigation, Car,Bike, Map as MapIcon, Info, AlertCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { User as UserType } from '../types';
 import { StarRating } from '../components/ride/StarRating';
@@ -204,7 +204,11 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
                                         </div>
                                         <span className="text-sm font-medium text-gray-900">Earliest departure</span>
                                     </div>
-                                    <Clock className="w-4 h-4 text-gray-400" />
+                                    
+                                    <div className="w-6 h-6 rounded-full bg-yellow-100 flex items-center justify-center">
+                                        <Clock className="w-3 h-3 text-yellow-600" />
+                                    </div>
+                                   
                                     <input 
                                         type="checkbox" 
                                         checked={selectedSorts.has('earliest')}
@@ -222,7 +226,11 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
                                         </div>
                                         <span className="text-sm font-medium text-gray-900">Lowest price</span>
                                     </div>
-                                    <IndianRupee className="w-4 h-4 text-gray-400" />
+                                    
+                                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
+                                        <IndianRupee className="w-3 h-3 text-green-600" />
+                                    </div>
+                                    
                                     <input 
                                         type="checkbox" 
                                         checked={selectedSorts.has('price')}
@@ -240,8 +248,8 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
                                         </div>
                                         <span className="text-sm font-medium text-gray-900">2-wheeler</span>
                                     </div>
-                                    <div className="w-7 h-7 rounded-full bg-purple-100 flex items-center justify-center">
-                                        <Car className="w-3.5 h-3.5 text-purple-600" />
+                                    <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
+                                        <Bike className="w-3 h-3 text-blue-600" />
                                     </div>
                                     <input 
                                         type="checkbox" 
@@ -260,8 +268,8 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
                                         </div>
                                         <span className="text-sm font-medium text-gray-900">Close to arrival point</span>
                                     </div>
-                                    <div className="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center">
-                                        <Navigation className="w-3.5 h-3.5 text-green-600" />
+                                    <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center">
+                                        <Navigation className="w-3 h-3 text-purple-600" />
                                     </div>
                                     <input 
                                         type="checkbox" 
@@ -275,8 +283,7 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
 
                         {/* Safety Tips */}
                         <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200">
-                            <h3 className="text-sm font-bold text-gray-900 mb-2.5 flex items-center">
-                                <Shield className="w-4 h-4 mr-2 text-orange-600" />
+                            <h3 className="text-base font-bold text-gray-900 mb-2.5 flex items-center">
                                 Safety Tips
                             </h3>
                             <div className="space-y-2">
@@ -285,11 +292,11 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
                                     <p className="text-xs text-gray-700 leading-relaxed">Always check driver ratings and vehicle information before booking.</p>
                                 </div>
                                 <div className="flex items-start space-x-2">
-                                    <Info className="w-3.5 h-3.5 text-blue-600 flex-shrink-0 mt-0.5" />
+                                    <AlertCircle className="w-3.5 h-3.5 text-blue-600 flex-shrink-0 mt-0.5" />
                                     <p className="text-xs text-gray-700 leading-relaxed">Let friends or family know your ride details and expected arrival time.</p>
                                 </div>
                                 <div className="flex items-start space-x-2">
-                                    <Shield className="w-3.5 h-3.5 text-green-600 flex-shrink-0 mt-0.5" />
+                                    <AlertCircle className="w-3.5 h-3.5 text-green-600 flex-shrink-0 mt-0.5" />
                                     <p className="text-xs text-gray-700 leading-relaxed">Choose well-lit, public pickup and drop-off locations.</p>
                                 </div>
                             </div>
