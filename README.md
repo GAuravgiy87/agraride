@@ -8,6 +8,9 @@
 - **Ride Management** - Offer and search rides with GPS coordinates
 - **Smart Booking** - Counter-offer pricing and instant confirmations
 - **Live GPS Tracking** - Real-time location updates every 3 seconds
+- **Professional Maps** - Smooth, Uber-like map experience with real road routing
+- **Auto-Fit Bounds** - Maps automatically center to show complete routes
+- **OSRM Routing** - Accurate road-based routing with distance and duration
 - **In-App Messaging** - Direct chat between drivers and passengers
 - **Rating System** - 5-star reviews for trust and safety
 - **SOS Emergency** - One-click emergency alerts to admin
@@ -47,7 +50,7 @@ npm run dev
 - React 19 + TypeScript
 - Tailwind CSS 4 (Orange theme)
 - Framer Motion (Animations)
-- Leaflet (Maps)
+- Leaflet + Leaflet Routing Machine (Maps with OSRM)
 - React Router v7
 
 **Backend**
@@ -57,6 +60,7 @@ npm run dev
 
 **External APIs**
 - OpenStreetMap (Maps)
+- OSRM (Road Routing)
 - Nominatim (Geocoding)
 - Browser Geolocation API
 
@@ -99,7 +103,6 @@ npm run dev
 
 - **[system.md](./system.md)** - Complete technical documentation
 - **[roles.md](./roles.md)** - Team role-based documentation
-- **[ER-DIAGRAM.md](./ER-DIAGRAM.md)** - Database design and relationships
 - **[SRS.md](./SRS.md)** - Software requirements specification
 
 ## 🎨 Design System

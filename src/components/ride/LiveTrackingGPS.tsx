@@ -153,8 +153,7 @@ interface LiveTrackingGPSProps {
 }
 
 export const LiveTrackingGPS = ({ ride, currentUser, onClose }: LiveTrackingGPSProps) => {
-    console.log('🗺️ LiveTrackingGPS: Initializing for booked ride:', ride);
-    
+        
     const pickupCoords = getCoordinates(ride.origin);
     const destinationCoords = getCoordinates(ride.destination);
 
@@ -173,8 +172,7 @@ export const LiveTrackingGPS = ({ ride, currentUser, onClose }: LiveTrackingGPSP
     // STEP 1: Fetch Route from OSRM
     // ============================================
     useEffect(() => {
-        console.log('📍 Fetching route from OSRM...');
-        const controller = new AbortController();
+                const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 10000);
 
         const url = `https://router.project-osrm.org/route/v1/driving/${pickupCoords[1]},${pickupCoords[0]};${destinationCoords[1]},${destinationCoords[0]}?overview=full&geometries=geojson`;
@@ -189,13 +187,10 @@ export const LiveTrackingGPS = ({ ride, currentUser, onClose }: LiveTrackingGPSP
                     setRouteCoords(coords);
                     const total = calculateRouteDistance(coords);
                     setTotalDistance(total);
-                    console.log('✅ Route fetched:', coords.length, 'points, Total distance:', total.toFixed(2), 'km');
                 }
             })
             .catch(err => {
-                if (err.name !== 'AbortError') {
-                    console.error('❌ Route fetch error:', err);
-                }
+                // Silently handle routing errors
             })
             .finally(() => {
                 clearTimeout(timeout);
@@ -237,8 +232,7 @@ export const LiveTrackingGPS = ({ ride, currentUser, onClose }: LiveTrackingGPSP
      */
 
     const updateDriverLocation = (newLat: number, newLng: number) => {
-        console.log('📍 GPS Update received:', { newLat, newLng });
-        
+                
         // Calculate distance traveled since last update
         const distanceIncrement = calculateDistance(
             prevDriverPos.current[0],
@@ -255,7 +249,6 @@ export const LiveTrackingGPS = ({ ride, currentUser, onClose }: LiveTrackingGPSP
         if (totalDistance > 0) {
             const newProgress = Math.min(newDistanceTraveled / totalDistance, 1);
             setProgress(newProgress);
-            console.log('📊 Progress updated:', (newProgress * 100).toFixed(1) + '%');
         }
         
         // Calculate heading
@@ -279,8 +272,7 @@ export const LiveTrackingGPS = ({ ride, currentUser, onClose }: LiveTrackingGPSP
     useEffect(() => {
         // ⚠️ THIS IS ONLY FOR DEMO - REMOVE IN PRODUCTION
         // Replace with real GPS updates from backend
-        console.log('⚠️ Using simulation for demo - Replace with real GPS in production');
-        
+                
         let simulationProgress = 0;
         const interval = setInterval(() => {
             simulationProgress += 0.003;

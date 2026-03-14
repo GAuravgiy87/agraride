@@ -17,6 +17,10 @@ export interface ToastProps {
     onClose: (id: string) => void;
 }
 
+interface ToastItemProps extends ToastProps {
+    key?: string;
+}
+
 const toastConfig = {
     success: {
         icon: CheckCircle,
@@ -86,9 +90,11 @@ export const ToastContainer = ({ toasts, onClose }: { toasts: ToastProps[]; onCl
         <div className="fixed top-20 right-4 z-[9999] pointer-events-none">
             <div className="pointer-events-auto">
                 <AnimatePresence>
-                    {toasts.map((toast) => (
-                        <Toast key={toast.id} {...toast} onClose={onClose} />
-                    ))}
+                    {toasts.map((toast) => {
+                        // Extract key separately to avoid TypeScript error with React 19
+                        const { id, ...toastProps } = toast;
+                        return <Toast key={id} id={id} {...toastProps as any} onClose={onClose} />;
+                    })}
                 </AnimatePresence>
             </div>
         </div>

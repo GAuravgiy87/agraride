@@ -26,6 +26,10 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
     const navigate = useNavigate();
     const toast = useToast();
 
+    /**
+     * Toggle sort option on/off
+     * Allows multiple sort criteria to be active simultaneously
+     */
     const toggleSort = (sort: SortOption) => {
         setSelectedSorts(prev => {
             const newSet = new Set(prev);
@@ -34,7 +38,6 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
             } else {
                 newSet.add(sort);
             }
-            console.log('Sort toggled:', sort, 'Active sorts:', Array.from(newSet));
             return newSet;
         });
     };
@@ -127,6 +130,10 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
         }
     };
 
+    /**
+     * Filter and sort rides based on search query and selected sort options
+     * Supports multiple simultaneous sort criteria
+     */
     const sortedAndFilteredRides = [...rides]
         .filter(ride => {
             if (!searchQuery.trim()) return true;
@@ -140,11 +147,8 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
         .sort((a, b) => {
             // If no sorts selected, return original order
             if (selectedSorts.size === 0) {
-                console.log('No sorts selected, using original order');
                 return 0;
             }
-            
-            console.log('Sorting with:', Array.from(selectedSorts));
             
             // Apply multiple sort criteria in order of selection
             for (const sort of Array.from(selectedSorts)) {
@@ -152,11 +156,9 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
                 switch (sort) {
                     case 'earliest':
                         comparison = new Date(a.departure_time).getTime() - new Date(b.departure_time).getTime();
-                        if (comparison !== 0) console.log('Sorted by earliest:', a.origin, 'vs', b.origin, '=', comparison);
                         break;
                     case 'price':
                         comparison = a.price_per_seat - b.price_per_seat;
-                        if (comparison !== 0) console.log('Sorted by price:', a.price_per_seat, 'vs', b.price_per_seat, '=', comparison);
                         break;
                     case 'twoWheeler':
                         // Prioritize 2-wheelers (show them first)
@@ -164,12 +166,10 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
                                            a.vehicle_type?.toLowerCase().includes('2-wheeler')) ? 1 : 0;
                         const bIs2Wheeler = (b.driver_vehicle?.toLowerCase().includes('2-wheeler') || 
                                            b.vehicle_type?.toLowerCase().includes('2-wheeler')) ? 1 : 0;
-                        comparison = bIs2Wheeler - aIs2Wheeler; // Higher value (2-wheeler) comes first
-                        if (comparison !== 0) console.log('Sorted by 2-wheeler:', a.driver_vehicle, 'vs', b.driver_vehicle, '=', comparison);
+                        comparison = bIs2Wheeler - aIs2Wheeler;
                         break;
                     case 'arrival':
-                        // This could be implemented with actual distance calculation
-                        // For now, just maintain order
+                        // Future enhancement: implement actual distance calculation
                         comparison = 0;
                         break;
                 }
@@ -179,9 +179,9 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
         });
 
     return (
-        <div className="flex flex-col lg:flex-row bg-gray-50 h-screen max-h-screen overflow-hidden fixed inset-0 top-16 left-0 right-0">
-            {/* Left Sidebar - Fixed (No Scroll) - Hidden on mobile, shown on lg+ */}
-            <aside className="hidden lg:block lg:w-80 xl:w-96 bg-white flex-shrink-0 border-r border-gray-200 overflow-hidden h-full">
+        <div className="flex flex-col lg:flex-row bg-gray-50 fixed inset-0 top-16">
+            {/* Left Sidebar - Fixed, No Scroll */}
+            <aside className="hidden lg:flex lg:w-80 xl:w-96 bg-white flex-shrink-0 border-r border-gray-200 flex-col h-full overflow-hidden">
                 <div className="p-4 space-y-4">
                     {/* Sort by Section */}
                     <div className="bg-white rounded-xl p-4 border border-gray-200">
@@ -304,9 +304,10 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
                     </div>
             </aside>
 
-            {/* Main Content - Scrollable */}
-            <div className="flex-1 overflow-y-auto h-full scroll-smooth">
-                <div className="max-w-4xl mx-auto px-3 sm:px-5 py-3 sm:py-5 pb-6 sm:pb-8 min-h-full">
+            {/* Main Content - Scrollable Ride List */}
+            <main className="flex-1 flex flex-col h-full overflow-hidden">
+                <div className="flex-1 overflow-y-auto overscroll-contain">
+                    <div className="max-w-4xl mx-auto px-3 sm:px-5 py-4 pb-20">
                     {/* Header */}
                     <div className="mb-4">
                         <h1 className="text-xl font-bold text-gray-900">Available Rides</h1>
@@ -332,7 +333,7 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
                         <p className="text-sm text-gray-600 font-medium">Finding Rides...</p>
                     </div>
                 ) : (
-                    <div className="space-y-2.5 pb-6">
+                    <div className="space-y-3 pb-8">
                         {sortedAndFilteredRides.map(ride => {
                             const isExpanding = bookingRideId === ride.id;
                             const isFull = ride.available_seats === 0;
@@ -612,8 +613,9 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
                         )}
                     </div>
                 )}
+                    </div>
                 </div>
-            </div>
+            </main>
 
             <AnimatePresence>
                 {selectedRide && (

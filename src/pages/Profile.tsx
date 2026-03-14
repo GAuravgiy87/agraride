@@ -90,9 +90,7 @@ export const Profile = ({ user }: { user: UserType | null }) => {
             if (editForm.vehicle_type !== (user.vehicle_type || '')) updateData.vehicle_type = editForm.vehicle_type;
             if (showPasswordField && editForm.password.trim()) updateData.password = editForm.password.trim();
 
-            console.log('Update data being sent:', updateData);
-            console.log('User ID:', user.id);
-
+                        
             if (Object.keys(updateData).length === 0) {
                 setUpdateError('No changes to save');
                 return;
@@ -107,9 +105,7 @@ export const Profile = ({ user }: { user: UserType | null }) => {
                 body: JSON.stringify(updateData)
             });
 
-            console.log('Response status:', res.status);
-            console.log('Response headers:', res.headers);
-
+                        
             if (!res.ok) {
                 // Try to get error message from response
                 let errorMessage = 'Failed to update profile';
@@ -117,8 +113,7 @@ export const Profile = ({ user }: { user: UserType | null }) => {
                     const errorData = await res.json();
                     errorMessage = errorData.error || errorMessage;
                 } catch (jsonError) {
-                    console.error('Failed to parse error response:', jsonError);
-                    if (res.status === 404) {
+                                        if (res.status === 404) {
                         errorMessage = 'User not found. Please try logging in again.';
                     } else if (res.status === 400) {
                         errorMessage = 'Invalid data provided';
@@ -131,8 +126,7 @@ export const Profile = ({ user }: { user: UserType | null }) => {
             }
 
             const data = await res.json();
-            console.log('Update response:', data);
-
+            
             // Update localStorage with new user data
             const updatedUser = { ...user, ...data };
             localStorage.setItem('agraride_user', JSON.stringify(updatedUser));
@@ -147,8 +141,7 @@ export const Profile = ({ user }: { user: UserType | null }) => {
             }, 1000);
 
         } catch (error) {
-            console.error('Network error:', error);
-            setUpdateError('Network error. Please check your connection and try again.');
+                        setUpdateError('Network error. Please check your connection and try again.');
         }
     };
 

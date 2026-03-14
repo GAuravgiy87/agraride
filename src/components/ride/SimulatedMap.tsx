@@ -39,8 +39,7 @@ function RecenterButton({ center }: { center: [number, number] }) {
 }
 
 export const SimulatedMap = ({ ride, currentUser, onClose }: { ride: any, currentUser?: UserType | null, onClose: () => void }) => {
-    console.log('SimulatedMap rendering with ride:', ride);
-    
+        
     const [mapError, setMapError] = useState<string | null>(null);
     const [routeError, setRouteError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -92,8 +91,7 @@ export const SimulatedMap = ({ ride, currentUser, onClose }: { ride: any, curren
             })
             .catch(err => {
                 if (err.name !== 'AbortError') {
-                    console.error('Route fetch error:', err);
-                    setRouteError('Using direct route');
+                                        setRouteError('Using direct route');
                 }
             })
             .finally(() => {
@@ -147,18 +145,19 @@ export const SimulatedMap = ({ ride, currentUser, onClose }: { ride: any, curren
                                     latitude,
                                     longitude
                                 })
-                            }).catch(err => console.error('Location push error:', err));
+                            }).catch(err => {
+                                // Silently handle location update errors
+                            });
                         },
                         (error) => {
-                            console.error("Geolocation watch error:", error);
+                            // Silently handle geolocation errors
                         },
                         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
                     );
                 },
                 (error) => {
                     // Failed to get location - use simulation
-                    console.log("Geolocation not available, using simulation:", error.message);
-                    setMapError(null); // Don't show error, just use simulation
+                                        setMapError(null); // Don't show error, just use simulation
                 },
                 { timeout: 5000 }
             );
@@ -181,7 +180,9 @@ export const SimulatedMap = ({ ride, currentUser, onClose }: { ride: any, curren
                         }
                     }
                 })
-                .catch(err => console.error('Location poll error:', err));
+                .catch(err => {
+                    // Silently handle location fetch errors
+                });
         }, 3000);
 
         // Always start simulation for demo purposes
@@ -235,8 +236,7 @@ export const SimulatedMap = ({ ride, currentUser, onClose }: { ride: any, curren
                 throw new Error('Failed to complete ride');
             }
         } catch (error) {
-            console.error('End ride error:', error);
-            alert("Failed to complete ride. Please try again.");
+                        alert("Failed to complete ride. Please try again.");
         }
     };
 
@@ -254,8 +254,7 @@ export const SimulatedMap = ({ ride, currentUser, onClose }: { ride: any, curren
                 throw new Error('SOS failed');
             }
         } catch (error) {
-            console.error('SOS error:', error);
-            alert("Failed to send SOS. Please call emergency services directly: 112");
+                        alert("Failed to send SOS. Please call emergency services directly: 112");
         }
     };
 

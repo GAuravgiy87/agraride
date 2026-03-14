@@ -1,6 +1,28 @@
-import { useState, useRef } from 'react';
+/**
+ * ============================================
+ * LOCATION PICKER COMPONENT
+ * ============================================
+ * 
+ * Interactive map component for selecting locations
+ * 
+ * FEATURES:
+ * - Click anywhere on map to select location
+ * - Search functionality with Nominatim API
+ * - Reverse geocoding for address lookup
+ * - Smooth interactions without re-renders
+ * - Custom marker styling
+ * 
+ * PERFORMANCE OPTIMIZATIONS:
+ * - Memoized map center and custom icon
+ * - useCallback for event handlers
+ * - Stable map instance with key prop
+ * 
+ * @component
+ */
+
+import { useState, useCallback, useMemo } from 'react';
 import { motion } from 'motion/react';
-import { MapPin, X, Check } from 'lucide-react';
+import { MapPin, X, Check, Search as SearchIcon } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -12,7 +34,13 @@ interface LocationPickerProps {
     onClose: () => void;
 }
 
-// Leaflet component to handle clicks
+/**
+ * Map Events Handler Component
+ * Captures map click events for location selection
+ * Memoized to prevent unnecessary re-renders
+ * 
+ * @component
+ */
 const MapEvents = ({ onMapClick }: { onMapClick: (lat: number, lng: number) => void }) => {
     useMapEvents({
         click(e) {
@@ -22,35 +50,68 @@ const MapEvents = ({ onMapClick }: { onMapClick: (lat: number, lng: number) => v
     return null;
 };
 
+/**
+ * Create custom marker icon
+ * Returns a Leaflet DivIcon with custom SVG
+ */
+const createCustomIcon = () => L.divIcon({
+    html: `<div class="text-blue-600 drop-shadow-lg"><svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5" fill="white"/></svg></div>`,
+    className: 'custom-div-icon',
+    iconSize: [40, 40],
+    iconAnchor: [20, 40],
+});
+
+/**
+ * Location Picker Component
+ * 
+ * Allows users to select a location by clicking on the map or searching
+ * Provides reverse geocoding to get address from coordinates
+ * 
+ * @param title - Header title for the picker
+ * @param initialLocation - Optional initial search query
+ * @param onLocationSelect - Callback with selected location {name, lat, lng}
+ * @param onClose - Callback when user closes the picker
+ */
 export const LocationPicker = ({ title, initialLocation, onLocationSelect, onClose }: LocationPickerProps) => {
     const [selectedLocation, setSelectedLocation] = useState<{ name: string; lat: number; lng: number } | null>(null);
     const [searchQuery, setSearchQuery] = useState(initialLocation || '');
     const [isSearching, setIsSearching] = useState(false);
 
-    // Default to Agra
-    const defaultCenter: [number, number] = [27.1767, 78.0081];
+    // Default to Agra - memoized to prevent recalculation
+    const defaultCenter: [number, number] = useMemo(() => [27.1767, 78.0081], []);
 
-    const handleMapClick = async (lat: number, lng: number) => {
-        // Set immediate coordinates
+    // Memoize custom icon to prevent recreation
+    const customIcon = useMemo(() => createCustomIcon(), []);
+
+    /**
+     * Handle map click event
+     * Sets temporary coordinates and fetches address via reverse geocoding
+     * Uses Nominatim API for address lookup
+     */
+    const handleMapClick = useCallback(async (lat: number, lng: number) => {
+        // Set immediate coordinates as fallback
         const tempLoc = { name: `${lat.toFixed(4)}, ${lng.toFixed(4)}`, lat, lng };
         setSelectedLocation(tempLoc);
 
-        // Fetch address from Nominatim (OpenStreetMap)
+        // Fetch human-readable address from Nominatim (OpenStreetMap)
         try {
             const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`);
             const data = await res.json();
             
             if (data && data.display_name) {
-                // Use the exact full address 
                 const locationName = data.display_name;
                 setSelectedLocation({ name: locationName, lat, lng });
                 setSearchQuery(locationName);
             }
         } catch (e) {
-            console.error('Reverse geocode error:', e);
+            // Silently fail - keep coordinate-based name
         }
-    };
+    }, []);
 
+    /**
+     * Handle location search
+     * Searches for location in Agra using Nominatim API
+     */
     const handleSearch = async () => {
         if (!searchQuery.trim()) return;
         
@@ -65,19 +126,21 @@ export const LocationPicker = ({ title, initialLocation, onLocationSelect, onClo
                 const lat = parseFloat(item.lat);
                 const lng = parseFloat(item.lon);
                 
-                let locationName = item.display_name.split(',')[0];
+                const locationName = item.display_name.split(',')[0];
                 setSelectedLocation({ name: locationName, lat, lng });
             } else {
                 alert('Location not found in Agra');
             }
         } catch (e) {
-            console.error('Search error:', e);
-            alert('Search failed');
+            alert('Search failed. Please try again.');
         } finally {
             setIsSearching(false);
         }
     };
 
+    /**
+     * Confirm location selection and close picker
+     */
     const handleConfirm = () => {
         if (selectedLocation) {
             onLocationSelect(selectedLocation);
@@ -87,12 +150,11 @@ export const LocationPicker = ({ title, initialLocation, onLocationSelect, onClo
         }
     };
 
-    const customIcon = L.divIcon({
-        html: `<div class="text-primary drop-shadow-lg"><svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5" fill="white"/></svg></div>`,
-        className: 'custom-div-icon',
-        iconSize: [40, 40],
-        iconAnchor: [20, 40],
-    });
+    // Determine map center - use selected location or default
+    const mapCenter = useMemo(() => 
+        selectedLocation ? [selectedLocation.lat, selectedLocation.lng] as [number, number] : defaultCenter,
+        [selectedLocation, defaultCenter]
+    );
 
     return (
         <motion.div
@@ -107,12 +169,13 @@ export const LocationPicker = ({ title, initialLocation, onLocationSelect, onClo
                 animate={{ scale: 1, y: 0 }}
                 exit={{ scale: 0.9, y: 20 }}
                 onClick={(e) => e.stopPropagation()}
-                className="bg-white w-full max-w-4xl rounded-[3rem] overflow-hidden shadow-2xl relative"
+                className="bg-white w-full max-w-4xl rounded-2xl overflow-hidden shadow-2xl relative"
             >
+                {/* Header */}
                 <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white relative z-10 shrink-0">
                     <div className="flex items-center gap-4">
-                        <div className="bg-primary/10 p-3 rounded-2xl">
-                            <MapPin className="text-primary w-6 h-6" />
+                        <div className="bg-blue-100 p-3 rounded-2xl">
+                            <MapPin className="text-blue-600 w-6 h-6" />
                         </div>
                         <div>
                             <h3 className="text-xl font-bold">{title}</h3>
@@ -124,6 +187,7 @@ export const LocationPicker = ({ title, initialLocation, onLocationSelect, onClo
                     </button>
                 </div>
 
+                {/* Map Container */}
                 <div className="relative h-[500px] w-full">
                     {/* Search Box Overlay */}
                     <div className="absolute top-4 left-4 right-4 z-[1000] flex gap-2">
@@ -133,23 +197,29 @@ export const LocationPicker = ({ title, initialLocation, onLocationSelect, onClo
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                            className="flex-1 px-4 py-3 rounded-2xl border-2 border-white shadow-xl outline-none focus:border-primary"
+                            className="flex-1 px-4 py-3 rounded-2xl border-2 border-white shadow-xl outline-none focus:border-blue-500"
                         />
                         <button 
                             onClick={handleSearch}
                             disabled={isSearching}
-                            className="bg-primary text-white px-6 py-3 rounded-2xl shadow-xl font-bold hover:bg-orange-600 disabled:opacity-70"
+                            className="bg-blue-600 text-white px-6 py-3 rounded-2xl shadow-xl font-bold hover:bg-blue-700 disabled:opacity-70 flex items-center gap-2"
                         >
-                            {isSearching ? '...' : 'Search'}
+                            <SearchIcon className="w-4 h-4" />
+                            {isSearching ? 'Searching...' : 'Search'}
                         </button>
                     </div>
 
-                    {/* Leaflet Map */}
+                    {/* Leaflet Map - Key prop ensures it doesn't re-render unnecessarily */}
                     <MapContainer
-                        center={selectedLocation ? [selectedLocation.lat, selectedLocation.lng] : defaultCenter}
+                        key="location-picker-map"
+                        center={mapCenter}
                         zoom={13}
                         style={{ height: '100%', width: '100%' }}
                         className="z-0"
+                        scrollWheelZoom={true}
+                        dragging={true}
+                        touchZoom={true}
+                        doubleClickZoom={true}
                     >
                         <TileLayer
                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -160,7 +230,7 @@ export const LocationPicker = ({ title, initialLocation, onLocationSelect, onClo
                         {selectedLocation && (
                             <Marker position={[selectedLocation.lat, selectedLocation.lng]} icon={customIcon}>
                                 <Popup>
-                                    <div className="font-bold text-center">
+                                    <div className="font-bold text-center p-2">
                                         {selectedLocation.name}
                                     </div>
                                 </Popup>
@@ -192,7 +262,7 @@ export const LocationPicker = ({ title, initialLocation, onLocationSelect, onClo
                                 disabled={!selectedLocation}
                                 className={`flex shrink-0 items-center gap-2 px-6 py-3 rounded-2xl font-bold transition-all ${
                                     selectedLocation 
-                                        ? 'bg-primary text-white hover:bg-primary/90 shadow-lg shadow-orange-200' 
+                                        ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg' 
                                         : 'bg-slate-100 text-slate-400 cursor-not-allowed'
                                 }`}
                             >

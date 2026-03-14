@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
+@import "leaflet-routing-machine/dist/leaflet-routing-machine.css";
 
 /* ========================================
    CRITICAL: Leaflet Map Container Fixes
@@ -13,6 +14,16 @@
   font-family: inherit;
   z-index: 1;
   background: #f0f0f0;
+}
+
+/* Hide Leaflet Routing Machine default instruction panel for clean UI */
+.leaflet-routing-container {
+  display: none !important;
+}
+
+/* Keep routing control but hide the panel */
+.leaflet-routing-alternatives-container {
+  display: none !important;
 }
 
 /* Fix for maps inside modals/hidden containers */
@@ -222,13 +233,25 @@
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   @apply bg-transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
+  @apply bg-slate-300 rounded-full hover:bg-slate-400 transition-colors;
+}
+
+/* Smooth scrolling for main content areas */
+.scroll-smooth {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent overscroll bounce on specific containers */
+.overscroll-contain {
+  overscroll-behavior: contain;
 }
 
 @keyframes marker-pulse {

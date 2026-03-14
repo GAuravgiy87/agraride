@@ -29,13 +29,11 @@ export const AdminDashboard = ({ user }: { user: UserType | null }) => {
         fetch('/api/admin/rides')
             .then(res => res.json())
             .then(data => {
-                console.log('Fetched rides:', data);
-                setAllRides(data);
+                                setAllRides(data);
                 setFilteredRides(data);
             })
             .catch(err => {
-                console.error('Error fetching rides:', err);
-                setAllRides([]);
+                                setAllRides([]);
                 setFilteredRides([]);
             });
     };
@@ -44,13 +42,11 @@ export const AdminDashboard = ({ user }: { user: UserType | null }) => {
         fetch('/api/admin/users')
             .then(res => res.json())
             .then(data => {
-                console.log('Fetched users:', data);
-                setAllUsers(data);
+                                setAllUsers(data);
                 setFilteredUsers(data);
             })
             .catch(err => {
-                console.error('Error fetching users:', err);
-                setAllUsers([]);
+                                setAllUsers([]);
                 setFilteredUsers([]);
             });
     };
@@ -129,12 +125,10 @@ export const AdminDashboard = ({ user }: { user: UserType | null }) => {
                 fetchStats();
             } else {
                 alert('Failed to delete ride: ' + (data.error || 'Unknown error'));
-                console.error('Delete ride error:', data);
-            }
+                            }
         } catch (error) {
             alert('Failed to delete ride: Network error');
-            console.error('Delete ride error:', error);
-        }
+                    }
     };
 
     const completeRide = async (id: number) => {
@@ -153,8 +147,7 @@ export const AdminDashboard = ({ user }: { user: UserType | null }) => {
             }
         } catch (error) {
             alert('Failed to complete ride: Network error');
-            console.error('Complete ride error:', error);
-        }
+                    }
     };
 
     const deleteUser = async (id: number) => {
@@ -170,12 +163,10 @@ export const AdminDashboard = ({ user }: { user: UserType | null }) => {
                 fetchStats();
             } else {
                 alert('Failed to delete user: ' + (data.error || 'Unknown error'));
-                console.error('Delete user error:', data);
-            }
+                            }
         } catch (error) {
             alert('Failed to delete user: Network error');
-            console.error('Delete user error:', error);
-        }
+                    }
     };
 
     const toggleUserRole = async (userId: number, currentRole: string) => {

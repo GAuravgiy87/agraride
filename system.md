@@ -377,6 +377,7 @@ rides (1) ──triggers──> (N) sos_alerts
 - **Framer Motion** - Smooth animations
 - **React Router v7** - Client-side routing
 - **Leaflet** - Interactive maps
+- **Leaflet Routing Machine** - Real road-based routing with OSRM
 - **Lucide React** - Icon library
 - **date-fns** - Date formatting
 
@@ -393,6 +394,7 @@ rides (1) ──triggers──> (N) sos_alerts
 
 ### External APIs
 - **OpenStreetMap** - Map tiles
+- **OSRM (Open Source Routing Machine)** - Real road-based routing
 - **Nominatim** - Geocoding
 - **Browser Geolocation API** - GPS tracking
 

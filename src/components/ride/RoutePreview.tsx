@@ -44,8 +44,7 @@ export const RoutePreview = ({ ride, onClose }: RoutePreviewProps) => {
                 }
             })
             .catch(err => {
-                console.error('Route fetch error:', err);
-            })
+                            })
             .finally(() => {
                 clearTimeout(timeoutId);
                 setLoading(false);

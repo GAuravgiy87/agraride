@@ -200,22 +200,19 @@ interface LiveTrackingMapProps {
 }
 
 export const LiveTrackingMap = ({ ride, currentUser, onClose }: LiveTrackingMapProps) => {
-    console.log('🗺️ LiveTrackingMap: Initializing with ride:', ride);
-    
+        
     // Helper to get coordinates with better matching
     const getCoords = (name: string): [number, number] => {
         if (!name) return AGRA_COORDINATES.default;
         
         const nameLower = name.toLowerCase().trim();
-        console.log('🔍 Looking up coordinates for:', name);
-        
+                
         // Try exact match first
         const exactMatch = Object.keys(AGRA_COORDINATES).find(k => 
             k.toLowerCase() === nameLower
         );
         if (exactMatch) {
-            console.log('✅ Exact match found:', exactMatch, AGRA_COORDINATES[exactMatch]);
-            return AGRA_COORDINATES[exactMatch];
+                        return AGRA_COORDINATES[exactMatch];
         }
         
         // Try partial match
@@ -223,12 +220,10 @@ export const LiveTrackingMap = ({ ride, currentUser, onClose }: LiveTrackingMapP
             nameLower.includes(k.toLowerCase()) || k.toLowerCase().includes(nameLower)
         );
         if (partialMatch) {
-            console.log('✅ Partial match found:', partialMatch, AGRA_COORDINATES[partialMatch]);
-            return AGRA_COORDINATES[partialMatch];
+                        return AGRA_COORDINATES[partialMatch];
         }
         
-        console.warn('⚠️ No match found for:', name, '- using default');
-        return AGRA_COORDINATES.default;
+                return AGRA_COORDINATES.default;
     };
 
     const pickupCoords = getCoords(ride.origin);
@@ -245,21 +240,12 @@ export const LiveTrackingMap = ({ ride, currentUser, onClose }: LiveTrackingMapP
     const [isSimulating, setIsSimulating] = useState(false); // Control simulation
     const mapRef = useRef<L.Map | null>(null);
 
-    console.log('🗺️ Map coordinates:', { 
-        origin: ride.origin,
-        destination: ride.destination,
-        pickupCoords, 
-        destinationCoords, 
-        driverLat, 
-        driverLng 
-    });
-
+    
     // ============================================
     // FIX 4: Fetch Route from OSRM (OpenStreetMap Routing)
     // ============================================
     useEffect(() => {
-        console.log('🗺️ Fetching route from OSRM...');
-        const controller = new AbortController();
+                const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 10000);
 
         const url = `https://router.project-osrm.org/route/v1/driving/${pickupCoords[1]},${pickupCoords[0]};${destinationCoords[1]},${destinationCoords[0]}?overview=full&geometries=geojson`;
@@ -275,15 +261,12 @@ export const LiveTrackingMap = ({ ride, currentUser, onClose }: LiveTrackingMapP
                         (coord: [number, number]) => [coord[1], coord[0]] as [number, number]
                     );
                     setRouteCoords(coords);
-                    console.log('✅ Route fetched:', coords.length, 'points');
-                } else {
-                    console.warn('⚠️ No route found, using direct line');
-                }
+                                    } else {
+                                    }
             })
             .catch(err => {
                 if (err.name !== 'AbortError') {
-                    console.error('❌ Route fetch error:', err);
-                    setError('Using direct route');
+                                        setError('Using direct route');
                 }
             })
             .finally(() => {
@@ -303,12 +286,10 @@ export const LiveTrackingMap = ({ ride, currentUser, onClose }: LiveTrackingMapP
     useEffect(() => {
         // Only simulate if explicitly enabled
         if (!isSimulating) {
-            console.log('⏸️ Simulation paused - waiting for user action');
-            return;
+                        return;
         }
 
-        console.log('🚗 Starting controlled location simulation...');
-        let animationProgress = progress; // Start from current progress
+                let animationProgress = progress; // Start from current progress
         const totalPoints = routeCoords.length;
         
         // Calculate heading between two points
@@ -334,8 +315,7 @@ export const LiveTrackingMap = ({ ride, currentUser, onClose }: LiveTrackingMapP
                 animationProgress = 1;
                 clearInterval(interval);
                 setIsSimulating(false);
-                console.log('✅ Journey completed');
-            }
+                            }
             
             setProgress(animationProgress);
             

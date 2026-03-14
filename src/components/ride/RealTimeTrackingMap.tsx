@@ -164,8 +164,7 @@ interface RealTimeTrackingMapProps {
 }
 
 export const RealTimeTrackingMap = ({ ride, currentUser, onClose }: RealTimeTrackingMapProps) => {
-    console.log('🗺️ RealTimeTrackingMap: Initializing with ride:', ride);
-    
+        
     const pickupCoords = getCoordinates(ride.origin);
     const destinationCoords = getCoordinates(ride.destination);
 
@@ -179,19 +178,12 @@ export const RealTimeTrackingMap = ({ ride, currentUser, onClose }: RealTimeTrac
     const [error, setError] = useState<string | null>(null);
     const mapRef = useRef<L.Map | null>(null);
 
-    console.log('🗺️ Coordinates:', { 
-        origin: ride.origin,
-        destination: ride.destination,
-        pickupCoords, 
-        destinationCoords 
-    });
-
+    
     // ============================================
     // Fetch Route from OSRM (Real Road Geometry)
     // ============================================
     useEffect(() => {
-        console.log('🗺️ Fetching route from OSRM...');
-        const controller = new AbortController();
+                const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 10000);
 
         const url = `https://router.project-osrm.org/route/v1/driving/${pickupCoords[1]},${pickupCoords[0]};${destinationCoords[1]},${destinationCoords[0]}?overview=full&geometries=geojson`;
@@ -207,15 +199,12 @@ export const RealTimeTrackingMap = ({ ride, currentUser, onClose }: RealTimeTrac
                         (coord: [number, number]) => [coord[1], coord[0]] as [number, number]
                     );
                     setRouteCoords(coords);
-                    console.log('✅ Route fetched:', coords.length, 'points');
-                } else {
-                    console.warn('⚠️ No route found, using direct line');
-                }
+                                    } else {
+                                    }
             })
             .catch(err => {
                 if (err.name !== 'AbortError') {
-                    console.error('❌ Route fetch error:', err);
-                    setError('Using direct route');
+                                        setError('Using direct route');
                 }
             })
             .finally(() => {
@@ -233,8 +222,7 @@ export const RealTimeTrackingMap = ({ ride, currentUser, onClose }: RealTimeTrac
     // AUTOMATIC Location Updates (Distance-Based)
     // ============================================
     useEffect(() => {
-        console.log('🚗 Starting AUTOMATIC location simulation...');
-        let animationProgress = 0;
+                let animationProgress = 0;
         const totalPoints = routeCoords.length;
         
         // Calculate heading between two points
@@ -259,8 +247,7 @@ export const RealTimeTrackingMap = ({ ride, currentUser, onClose }: RealTimeTrac
             if (animationProgress >= 1) {
                 animationProgress = 1;
                 clearInterval(interval);
-                console.log('✅ Journey completed');
-            }
+                            }
             
             setProgress(animationProgress);
             
