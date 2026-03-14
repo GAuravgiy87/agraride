@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { Car, ChevronRight, Edit, Trash2, Clock, MapPin, IndianRupee, Users, Navigation } from 'lucide-react';
+import { Car, ChevronRight, Edit, Trash2, Clock, MapPin, IndianRupee, Users, Navigation, TrendingUp, Activity, CheckCircle, XCircle, Calendar, DollarSign, Star, Award, Target, BarChart3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { formatDistanceToNow } from 'date-fns';
 import { User as UserType } from '../types';
 import { BookingRequests } from '../components/booking/BookingRequests';
 import { GoogleMap } from '../components/ride/GoogleMap';
+import { useToast } from '../contexts/ToastContext';
 
 export const MyRides = ({ user }: { user: UserType | null }) => {
     const [rides, setRides] = useState<any[]>([]);
     const [editingRide, setEditingRide] = useState<any>(null);
     const [trackingRide, setTrackingRide] = useState<any>(null);
+    const [bookings, setBookings] = useState<any[]>([]);
+    const toast = useToast();
     const [formData, setFormData] = useState({
         origin: '',
         destination: '',
@@ -22,6 +25,7 @@ export const MyRides = ({ user }: { user: UserType | null }) => {
     useEffect(() => {
         if (!user) return;
         fetchRides();
+        fetchBookings();
     }, [user]);
 
     const fetchRides = () => {
@@ -29,6 +33,14 @@ export const MyRides = ({ user }: { user: UserType | null }) => {
         fetch(`/api/rides/driver/${user.id}`)
             .then(res => res.json())
             .then(setRides);
+    };
+
+    const fetchBookings = () => {
+        if (!user) return;
+        fetch(`/api/bookings/driver/${user.id}`)
+            .then(res => res.json())
+            .then(setBookings)
+            .catch(() => setBookings([]));
     };
 
     const completeRide = async (rideId: number) => {
@@ -43,7 +55,7 @@ export const MyRides = ({ user }: { user: UserType | null }) => {
         const res = await fetch(`/api/rides/${rideId}`, { method: 'DELETE' });
         if (res.ok) {
             setRides(rides.filter(r => r.id !== rideId));
-            alert('Ride deleted successfully!');
+            toast.success('Ride deleted successfully!');
         }
     };
 
@@ -66,7 +78,7 @@ export const MyRides = ({ user }: { user: UserType | null }) => {
             body: JSON.stringify(formData)
         });
         if (res.ok) {
-            alert('Ride updated successfully!');
+            toast.success('Ride updated successfully!');
             setEditingRide(null);
             fetchRides();
         }
@@ -74,9 +86,27 @@ export const MyRides = ({ user }: { user: UserType | null }) => {
 
     if (!user) return <Navigate to="/login" />;
 
+    // Calculate statistics
+    const totalRides = rides.length;
+    const activeRides = rides.filter(r => r.status === 'active').length;
+    const completedRides = rides.filter(r => r.status === 'completed').length;
+    const cancelledRides = rides.filter(r => r.status === 'cancelled').length;
+    const upcomingRides = rides.filter(r => new Date(r.departure_time) > new Date() && r.status === 'active').length;
+    
+    const totalEarnings = bookings
+        .filter(b => b.status === 'confirmed')
+        .reduce((sum, b) => sum + (b.price_per_seat || 0), 0);
+    
+    const totalPassengers = bookings.filter(b => b.status === 'confirmed').length;
+    const pendingRequests = bookings.filter(b => b.status === 'pending').length;
+    
+    const completionRate = totalRides > 0 ? ((completedRides / totalRides) * 100).toFixed(0) : 0;
+    const avgSeatsPerRide = totalRides > 0 ? (rides.reduce((sum, r) => sum + (4 - r.available_seats), 0) / totalRides).toFixed(1) : 0;
+
     return (
-        <div className="min-h-screen bg-gray-50">
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-gray-50 pt-16" style={{ minHeight: 'calc(100vh - 64px)' }}>
+            {/* Main Content - Full Width */}
+            <div className="max-w-7xl mx-auto px-6 py-8">
                 {/* Header */}
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-gray-900">My Offered Rides</h1>

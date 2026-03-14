@@ -204,7 +204,7 @@ export const AdminDashboard = ({ user }: { user: UserType | null }) => {
     );
 
     return (
-        <div className="max-w-7xl mx-auto px-4 py-16">
+        <div className="max-w-7xl mx-auto px-4 py-16 pt-24">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-16">
                 <div>
                     <h2 className="text-4xl font-display font-black tracking-tight flex items-center gap-4 text-primary">

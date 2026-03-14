@@ -19,7 +19,7 @@ export const Inbox = ({ user }: { user: UserType | null }) => {
     if (!user) return <Navigate to="/login" />;
 
     return (
-        <div className="max-w-6xl mx-auto px-4 py-12">
+        <div className="max-w-6xl mx-auto px-4 py-12 pt-24">
             <div className="flex items-center gap-3 mb-10">
                 <div className="bg-primary/10 p-3 rounded-lg">
                     <MessageSquare className="text-primary w-6 h-6" />

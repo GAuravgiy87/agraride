@@ -7,6 +7,7 @@ import { User as UserType } from '../types';
 import { StarRating } from '../components/ride/StarRating';
 import { GoogleMap } from '../components/ride/GoogleMap';
 import { RoutePreview } from '../components/ride/RoutePreview';
+import { useToast } from '../contexts/ToastContext';
 
 type SortOption = 'earliest' | 'price' | 'twoWheeler' | 'arrival';
 
@@ -21,7 +22,9 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
     const [showCounterOffer, setShowCounterOffer] = useState(false);
     const [pendingBookings, setPendingBookings] = useState<Set<number>>(new Set());
     const [selectedSorts, setSelectedSorts] = useState<Set<SortOption>>(new Set(['earliest']));
+    const [searchQuery, setSearchQuery] = useState('');
     const navigate = useNavigate();
+    const toast = useToast();
 
     const toggleSort = (sort: SortOption) => {
         setSelectedSorts(prev => {
@@ -31,6 +34,7 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
             } else {
                 newSet.add(sort);
             }
+            console.log('Sort toggled:', sort, 'Active sorts:', Array.from(newSet));
             return newSet;
         });
     };
@@ -38,6 +42,14 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
     const clearAllSorts = () => {
         setSelectedSorts(new Set());
     };
+
+    // Prevent body scroll on this page
+    useEffect(() => {
+        document.body.classList.add('no-scroll');
+        return () => {
+            document.body.classList.remove('no-scroll');
+        };
+    }, []);
 
     useEffect(() => {
         const fetchRides = async () => {
@@ -84,7 +96,11 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
     }, [user]);
 
     const handleConfirmBooking = async (rideId: number) => {
-        if (!user) return alert("Please login to book a ride");
+        if (!user) {
+            toast.warning('Please login to book a ride');
+            return;
+        }
+        
         const res = await fetch('/api/bookings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -95,9 +111,10 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
                 counter_offer_price: counterOfferPrice 
             })
         });
+        
         if (res.ok) {
             const data = await res.json();
-            alert(data.message);
+            toast.success(data.message || 'Booking request sent successfully!');
             setBookingRideId(null);
             setCounterOfferPrice(null);
             setShowCounterOffer(false);
@@ -106,78 +123,68 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
             setRides(updated);
         } else {
             const data = await res.json();
-            alert(data.error || "Failed to book ride");
+            toast.error(data.error || 'Failed to book ride. Please try again.');
         }
     };
 
-    const sortedRides = [...rides].sort((a, b) => {
-        // Apply multiple sort criteria in order of selection
-        for (const sort of Array.from(selectedSorts)) {
-            let comparison = 0;
-            switch (sort) {
-                case 'earliest':
-                    comparison = new Date(a.departure_time).getTime() - new Date(b.departure_time).getTime();
-                    break;
-                case 'price':
-                    comparison = a.price_per_seat - b.price_per_seat;
-                    break;
-                case 'twoWheeler':
-                    // Filter for 2-wheelers (prioritize 2-wheeler vehicles)
-                    const aIs2Wheeler = a.driver_vehicle?.toLowerCase().includes('2-wheeler') ? 1 : 0;
-                    const bIs2Wheeler = b.driver_vehicle?.toLowerCase().includes('2-wheeler') ? 1 : 0;
-                    comparison = bIs2Wheeler - aIs2Wheeler;
-                    break;
-                case 'arrival':
-                    comparison = 0;
-                    break;
+    const sortedAndFilteredRides = [...rides]
+        .filter(ride => {
+            if (!searchQuery.trim()) return true;
+            const query = searchQuery.toLowerCase();
+            return (
+                ride.origin.toLowerCase().includes(query) ||
+                ride.destination.toLowerCase().includes(query) ||
+                ride.driver_name.toLowerCase().includes(query)
+            );
+        })
+        .sort((a, b) => {
+            // If no sorts selected, return original order
+            if (selectedSorts.size === 0) {
+                console.log('No sorts selected, using original order');
+                return 0;
             }
-            if (comparison !== 0) return comparison;
-        }
-        return 0;
-    });
+            
+            console.log('Sorting with:', Array.from(selectedSorts));
+            
+            // Apply multiple sort criteria in order of selection
+            for (const sort of Array.from(selectedSorts)) {
+                let comparison = 0;
+                switch (sort) {
+                    case 'earliest':
+                        comparison = new Date(a.departure_time).getTime() - new Date(b.departure_time).getTime();
+                        if (comparison !== 0) console.log('Sorted by earliest:', a.origin, 'vs', b.origin, '=', comparison);
+                        break;
+                    case 'price':
+                        comparison = a.price_per_seat - b.price_per_seat;
+                        if (comparison !== 0) console.log('Sorted by price:', a.price_per_seat, 'vs', b.price_per_seat, '=', comparison);
+                        break;
+                    case 'twoWheeler':
+                        // Prioritize 2-wheelers (show them first)
+                        const aIs2Wheeler = (a.driver_vehicle?.toLowerCase().includes('2-wheeler') || 
+                                           a.vehicle_type?.toLowerCase().includes('2-wheeler')) ? 1 : 0;
+                        const bIs2Wheeler = (b.driver_vehicle?.toLowerCase().includes('2-wheeler') || 
+                                           b.vehicle_type?.toLowerCase().includes('2-wheeler')) ? 1 : 0;
+                        comparison = bIs2Wheeler - aIs2Wheeler; // Higher value (2-wheeler) comes first
+                        if (comparison !== 0) console.log('Sorted by 2-wheeler:', a.driver_vehicle, 'vs', b.driver_vehicle, '=', comparison);
+                        break;
+                    case 'arrival':
+                        // This could be implemented with actual distance calculation
+                        // For now, just maintain order
+                        comparison = 0;
+                        break;
+                }
+                if (comparison !== 0) return comparison;
+            }
+            return 0;
+        });
 
     return (
-        <div className="flex bg-gray-50" style={{ height: 'calc(100vh - 64px)' }}>
-            {/* Left Sidebar - Fixed with independent scroll */}
-            <aside className="w-96 bg-white flex-shrink-0 flex flex-col overflow-hidden border-r border-gray-200" style={{ height: 'calc(100vh - 64px)' }}>
-                <div className="flex-1 overflow-y-auto">
-                    <div className="p-4 space-y-4">
-                        {/* Map Preview */}
-                        <div className="relative">
-                            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl h-52 flex items-center justify-center border border-blue-200 overflow-hidden shadow-sm">
-                                {previewRide ? (
-                                    <div className="text-center p-4 w-full">
-                                        <div className="bg-white/90 backdrop-blur-sm rounded-xl p-4 mx-4">
-                                            <p className="text-sm font-semibold text-gray-900 mb-2">{previewRide.origin}</p>
-                                            <div className="flex items-center justify-center my-2">
-                                                <div className="h-px bg-gray-300 flex-1"></div>
-                                                <ChevronRight className="w-4 h-4 text-blue-600 mx-2" />
-                                                <div className="h-px bg-gray-300 flex-1"></div>
-                                            </div>
-                                            <p className="text-sm font-semibold text-gray-900 mb-3">{previewRide.destination}</p>
-                                            <button
-                                                onClick={() => setSelectedRide(previewRide)}
-                                                className="w-full px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-full hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
-                                            >
-                                                <MapIcon className="w-4 h-4" />
-                                                <span>Show rides on map</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="text-center text-gray-500 p-6">
-                                        <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6">
-                                            <MapIcon className="w-10 h-10 mx-auto mb-2 text-blue-400" />
-                                            <p className="text-sm font-medium text-gray-700">Select a ride to preview</p>
-                                            <p className="text-xs text-gray-500 mt-1">Route will appear here</p>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Sort by Section */}
-                        <div className="bg-white rounded-xl p-4 border border-gray-200">
+        <div className="flex flex-col lg:flex-row bg-gray-50 h-screen max-h-screen overflow-hidden fixed inset-0 top-16 left-0 right-0">
+            {/* Left Sidebar - Fixed (No Scroll) - Hidden on mobile, shown on lg+ */}
+            <aside className="hidden lg:block lg:w-80 xl:w-96 bg-white flex-shrink-0 border-r border-gray-200 overflow-hidden h-full">
+                <div className="p-4 space-y-4">
+                    {/* Sort by Section */}
+                    <div className="bg-white rounded-xl p-4 border border-gray-200">
                             <div className="flex items-center justify-between mb-3">
                                 <h3 className="text-base font-bold text-gray-900">Sort by</h3>
                                 <button 
@@ -288,12 +295,11 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
                             </div>
                         </div>
                     </div>
-                </div>
             </aside>
 
-            {/* Main Content - Independent scroll */}
-            <div className="flex-1 overflow-y-auto" style={{ height: 'calc(100vh - 64px)' }}>
-                <div className="max-w-4xl mx-auto px-5 py-5">
+            {/* Main Content - Scrollable */}
+            <div className="flex-1 overflow-y-auto h-full scroll-smooth">
+                <div className="max-w-4xl mx-auto px-3 sm:px-5 py-3 sm:py-5 pb-6 sm:pb-8 min-h-full">
                     {/* Header */}
                     <div className="mb-4">
                         <h1 className="text-xl font-bold text-gray-900">Available Rides</h1>
@@ -305,7 +311,9 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
                         <div className="flex items-center bg-white border border-gray-300 rounded-xl px-4 py-2.5 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all shadow-sm">
                             <Search className="w-4 h-4 text-gray-400 mr-3" />
                             <input 
-                                placeholder="Search landmarks..." 
+                                placeholder="Search landmarks, driver name..." 
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
                                 className="outline-none flex-1 text-sm font-medium placeholder-gray-400" 
                             />
                         </div>
@@ -317,8 +325,8 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
                         <p className="text-sm text-gray-600 font-medium">Finding Rides...</p>
                     </div>
                 ) : (
-                    <div className="space-y-2.5">
-                        {sortedRides.map(ride => {
+                    <div className="space-y-2.5 pb-6">
+                        {sortedAndFilteredRides.map(ride => {
                             const isExpanding = bookingRideId === ride.id;
                             const isFull = ride.available_seats === 0;
                             const hasBooked = userBookings.has(ride.id);
@@ -332,12 +340,10 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
                                     layout
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    onMouseEnter={() => setPreviewRide(ride)}
-                                    onMouseLeave={() => setPreviewRide(null)}
-                                    className={`bg-white rounded-xl border border-gray-200 p-3.5 hover:shadow-lg hover:border-blue-300 transition-all cursor-pointer ${isDisabled && !isOwnRide ? 'opacity-60' : ''} ${isOwnRide ? 'border-2 border-orange-200 bg-orange-50/30' : ''}`}
+                                    className={`bg-white rounded-xl border border-gray-200 p-2.5 sm:p-3.5 transition-shadow ${isDisabled && !isOwnRide ? 'opacity-60' : ''} ${isOwnRide ? 'border-2 border-orange-200 bg-orange-50/30' : ''}`}
                                 >
                                     <div className="flex items-center justify-between">
-                                        <div className="flex items-center space-x-3 flex-1">
+                                        <div className="flex items-center space-x-3 flex-1 cursor-pointer" onClick={() => setSelectedRide(ride)}>
                                             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center border-2 border-white shadow-sm">
                                                 <User className="text-gray-600 w-5 h-5" />
                                             </div>
@@ -352,7 +358,9 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
                                                     <StarRating rating={ride.avg_rating || 5} size="sm" />
                                                     <span className="text-gray-500 text-xs font-medium">{(ride.avg_rating || 5).toFixed(1)}</span>
                                                     <span className="text-gray-300 text-xs">•</span>
-                                                    <span className="px-1.5 py-0.5 bg-gray-100 text-gray-700 text-xs font-medium rounded">{ride.driver_vehicle || '4-wheeler'}</span>
+                                                    <span className="px-1.5 py-0.5 bg-gray-100 text-gray-700 text-xs font-medium rounded">
+                                                        {ride.driver_vehicle || ride.vehicle_type || '4-wheeler'}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
@@ -378,7 +386,7 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
                                         </div>
                                     </div>
 
-                                    <div className="mt-2.5 flex items-center space-x-3">
+                                    <div className="mt-2.5 flex items-center space-x-3 cursor-pointer" onClick={() => setSelectedRide(ride)}>
                                         <div className="flex-1 bg-gray-50 rounded-lg p-2.5">
                                             <div className="flex items-center space-x-2.5">
                                                 <div className="flex-1">
@@ -441,7 +449,10 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
                                                         </p>
                                                         <button
                                                             onClick={async () => {
-                                                                if (!user) return alert("Login to chat");
+                                                                if (!user) {
+                                                                    toast.warning('Please login to send messages');
+                                                                    return;
+                                                                }
                                                                 await fetch('/api/messages', {
                                                                     method: 'POST',
                                                                     headers: { 'Content-Type': 'application/json' },
@@ -452,6 +463,7 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
                                                                         content: "Hi! I'm interested in your ride."
                                                                     })
                                                                 });
+                                                                toast.success('Message sent successfully!');
                                                                 navigate('/inbox');
                                                             }}
                                                             className="flex items-center space-x-2 text-orange-600 font-semibold text-sm hover:text-orange-700 transition-colors"
@@ -580,6 +592,15 @@ export const SearchRides = ({ user }: { user: UserType | null }) => {
                                 </div>
                                 <h3 className="text-xl font-bold text-gray-900 mb-2">No rides available right now</h3>
                                 <p className="text-gray-600">Check back later or offer your own ride!</p>
+                            </div>
+                        )}
+                        {sortedAndFilteredRides.length === 0 && rides.length > 0 && (
+                            <div className="text-center py-20 bg-white rounded-xl border border-gray-200">
+                                <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                                    <Search className="w-8 h-8 text-gray-400" />
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-900 mb-2">No rides match your search</h3>
+                                <p className="text-gray-600">Try adjusting your search or filters</p>
                             </div>
                         )}
                     </div>

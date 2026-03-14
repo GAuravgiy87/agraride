@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { PlusCircle, Car as CarIcon, Bike, MapPin, Navigation } from 'lucide-react';
 import { User as UserType } from '../types';
 import { LocationPicker } from '../components/ride/LocationPicker';
+import { useToast } from '../contexts/ToastContext';
 
 export const OfferRide = ({ user }: { user: UserType | null }) => {
     const [formData, setFormData] = useState({
@@ -22,6 +23,7 @@ export const OfferRide = ({ user }: { user: UserType | null }) => {
     const [showOriginPicker, setShowOriginPicker] = useState(false);
     const [showDestPicker, setShowDestPicker] = useState(false);
     const navigate = useNavigate();
+    const toast = useToast();
 
     if (!user) return <Navigate to="/login" />;
 
@@ -62,10 +64,12 @@ export const OfferRide = ({ user }: { user: UserType | null }) => {
                          handleOriginSelect({ name: `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`, lat, lng });
                     }
                 },
-                (error) => alert('Could not get your location: ' + error.message)
+                (error) => {
+                    toast.error('Could not get your location: ' + error.message);
+                }
             );
         } else {
-            alert('Geolocation is not supported by your browser');
+            toast.error('Geolocation is not supported by your browser');
         }
     };
 
@@ -94,16 +98,17 @@ export const OfferRide = ({ user }: { user: UserType | null }) => {
         });
         
         if (res.ok) {
+            toast.success('Ride created successfully!');
             navigate('/search');
         } else {
             const error = await res.json();
-            alert('Failed to create ride: ' + (error.error || 'Unknown error'));
+            toast.error('Failed to create ride: ' + (error.error || 'Unknown error'));
         }
     };
 
     return (
         <>
-            <div className="min-h-screen bg-gray-50">
+            <div className="min-h-screen bg-gray-50 pt-16">
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}

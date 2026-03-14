@@ -21,7 +21,7 @@ export const MyBookings = ({ user }: { user: UserType | null }) => {
     if (!user) return <Navigate to="/login" />;
 
     return (
-        <div className="max-w-5xl mx-auto px-4 py-16">
+        <div className="max-w-5xl mx-auto px-4 py-16 pt-24">
             <div className="mb-12">
                 <h2 className="text-4xl font-display font-black tracking-tight text-primary">My Bookings</h2>
                 <p className="text-slate-500 mt-2 font-medium">Keep track of your upcoming and past journeys.</p>
