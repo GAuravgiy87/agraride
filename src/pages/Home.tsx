@@ -17,8 +17,6 @@ import {
   Heart,
 } from "lucide-react";
 
-// Import new components
-import { Button, Card, Badge } from "../components/factory";
 import { useBreakpoint } from "../hooks/useApi";
 
 export const Home = () => {
@@ -87,27 +85,20 @@ export const Home = () => {
                 className={`flex ${isMobile ? "flex-col" : "flex-row"} gap-3 sm:gap-4 mb-6 sm:mb-8`}
               >
                 <Link to="/search">
-                  <Button
-                    variant="primary"
-                    size={isMobile ? "lg" : "md"}
-                    icon={Search}
-                    iconPosition="left"
-                    fullWidth={isMobile}
-                    className="shadow-lg shadow-orange-200/50"
+                  <button
+                    className={`inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-orange-600 text-white font-semibold rounded-lg hover:bg-orange-700 transition-colors shadow-lg shadow-orange-200/50 ${isMobile ? "w-full" : ""}`}
                   >
+                    <Search className="w-4 h-4 sm:w-5 sm:h-5" />
                     Find a Ride
-                  </Button>
+                  </button>
                 </Link>
                 <Link to="/offer">
-                  <Button
-                    variant="outline"
-                    size={isMobile ? "lg" : "md"}
-                    icon={PlusCircle}
-                    iconPosition="left"
-                    fullWidth={isMobile}
+                  <button
+                    className={`inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors ${isMobile ? "w-full" : ""}`}
                   >
+                    <PlusCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                     Offer a Ride
-                  </Button>
+                  </button>
                 </Link>
               </div>
             </motion.div>
@@ -122,9 +113,8 @@ export const Home = () => {
               >
                 <div className="relative">
                   {/* Main Card */}
-                  <Card
-                    variant="default"
-                    className="p-6 sm:p-8 border border-gray-100 shadow-2xl"
+                  <div
+                    className="p-6 sm:p-8 border border-gray-100 shadow-2xl rounded-2xl bg-white"
                   >
                     <div className="flex items-center space-x-3 sm:space-x-4 mb-4 sm:mb-6">
                       <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white text-lg sm:text-2xl font-bold">
@@ -157,7 +147,7 @@ export const Home = () => {
                         </span>
                       </div>
                     </div>
-                  </Card>
+                  </div>
 
                   {/* Floating Badge 1 */}
                   <motion.div
@@ -202,9 +192,9 @@ export const Home = () => {
             viewport={{ once: true }}
             className="text-center mb-12 sm:mb-16"
           >
-            <Badge variant="brand" className="mb-4">
+            <span className="inline-block px-3 sm:px-4 py-1 sm:py-2 bg-orange-100 text-orange-700 text-xs sm:text-sm font-semibold rounded-full mb-4">
               Features
-            </Badge>
+            </span>
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mt-4 mb-4">
               Why choose AgraRide?
             </h2>
@@ -269,7 +259,7 @@ export const Home = () => {
                 transition={{ delay: i * 0.1 }}
                 whileHover={{ y: -8, transition: { duration: 0.2 } }}
               >
-                <Card variant="default" padding="lg" hover className="h-full">
+                <div className="p-6 sm:p-8 border border-gray-200 shadow-lg hover:shadow-xl transition-shadow rounded-2xl bg-white h-full">
                   <div
                     className={`${feature.bgColor} w-12 h-12 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center mb-4 sm:mb-6 group-hover:scale-110 transition-transform duration-300`}
                   >
@@ -285,7 +275,7 @@ export const Home = () => {
                   <p className="text-gray-600 leading-relaxed text-sm sm:text-base">
                     {feature.desc}
                   </p>
-                </Card>
+                </div>
               </motion.div>
             ))}
           </div>
@@ -434,25 +424,19 @@ export const Home = () => {
               className={`flex ${isMobile ? "flex-col" : "flex-row"} justify-center gap-3 sm:gap-4`}
             >
               <Link to="/register">
-                <Button
-                  variant="primary"
-                  size={isMobile ? "lg" : "md"}
-                  fullWidth={isMobile}
-                  className="shadow-xl shadow-orange-200/50"
+                <button
+                  className={`inline-flex items-center justify-center px-4 sm:px-6 py-2 sm:py-3 bg-orange-600 text-white font-semibold rounded-lg hover:bg-orange-700 transition-colors shadow-xl shadow-orange-200/50 ${isMobile ? "w-full" : ""}`}
                 >
                   Get Started Free
-                </Button>
+                </button>
               </Link>
               <Link to="/search">
-                <Button
-                  variant="outline"
-                  size={isMobile ? "lg" : "md"}
-                  icon={Search}
-                  iconPosition="left"
-                  fullWidth={isMobile}
+                <button
+                  className={`inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors ${isMobile ? "w-full" : ""}`}
                 >
+                  <Search className="w-4 h-4 sm:w-5 sm:h-5" />
                   Browse Rides
-                </Button>
+                </button>
               </Link>
             </div>
           </motion.div>
