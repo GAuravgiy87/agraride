@@ -1,7 +1,6 @@
 import React from "react";
 import { ErrorBoundary as ReactErrorBoundary } from "react-error-boundary";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
-import { Button } from "../factory";
 
 /**
  * Error Boundary Component - Error Boundary Pattern
@@ -82,13 +81,21 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           {onRetry && (
-            <Button onClick={handleRetry} variant="primary" icon={RefreshCw}>
+            <button
+              onClick={handleRetry}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
               Try Again
-            </Button>
+            </button>
           )}
-          <Button onClick={handleGoHome} variant="outline" icon={Home}>
+          <button
+            onClick={handleGoHome}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <Home className="w-4 h-4" />
             Go Home
-          </Button>
+          </button>
         </div>
       </div>
     </div>
@@ -115,9 +122,13 @@ export const LoadingError: React.FC<{
       <p className="text-gray-600 text-center mb-6 max-w-sm">{message}</p>
 
       {onRetry && (
-        <Button onClick={onRetry} variant="primary" size="sm" icon={RefreshCw}>
+        <button
+          onClick={onRetry}
+          className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <RefreshCw className="w-4 h-4" />
           Try Again
-        </Button>
+        </button>
       )}
     </div>
   );
@@ -144,9 +155,13 @@ export const NetworkError: React.FC<{
       </p>
 
       {onRetry && (
-        <Button onClick={onRetry} variant="primary" size="sm" icon={RefreshCw}>
+        <button
+          onClick={onRetry}
+          className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <RefreshCw className="w-4 h-4" />
           Retry
-        </Button>
+        </button>
       )}
     </div>
   );
@@ -215,13 +230,12 @@ export const NotFound: React.FC<{
 
         <p className="text-orange-600 mb-6 max-w-sm mx-auto">{message}</p>
 
-        <Button
+        <button
           onClick={effectiveAction.onClick}
-          variant="primary"
-          className="bg-orange-500 hover:bg-orange-600 border-orange-500"
+          className="inline-flex items-center justify-center w-full px-4 py-2 bg-orange-500 text-white font-semibold rounded-lg hover:bg-orange-600 transition-colors"
         >
           {effectiveAction.label}
-        </Button>
+        </button>
 
         <p className="mt-4 text-sm text-orange-500 opacity-80">
           Click the car above to return to home.
@@ -254,9 +268,12 @@ export const PermissionDenied: React.FC<{
         </p>
 
         {onLogin && (
-          <Button onClick={onLogin} variant="primary">
+          <button
+            onClick={onLogin}
+            className="inline-flex items-center justify-center w-full px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+          >
             Login
-          </Button>
+          </button>
         )}
       </div>
     </div>
