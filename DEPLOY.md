@@ -20,16 +20,19 @@ Visit: `http://localhost:3000`
 ## Render Configuration
 
 ### Build Command
+
 ```bash
 npm install && npm run build
 ```
 
 ### Start Command
+
 ```bash
 node dist/server.js
 ```
 
 ### Environment Variables
+
 ```
 NODE_ENV=production
 DATABASE_URL=postgresql://user:password@host/dbname
@@ -65,4 +68,3 @@ https://your-app.onrender.com/search
 - **Frontend**: Built to `dist/index.html` by Vite
 - **Backend**: Built to `dist/server.js` by esbuild
 - **Server**: Serves both API and static frontend files
-
