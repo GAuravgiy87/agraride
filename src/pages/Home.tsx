@@ -113,9 +113,7 @@ export const Home = () => {
               >
                 <div className="relative">
                   {/* Main Card */}
-                  <div
-                    className="p-6 sm:p-8 border border-gray-100 shadow-2xl rounded-2xl bg-white"
-                  >
+                  <div className="p-6 sm:p-8 border border-gray-100 shadow-2xl rounded-2xl bg-white">
                     <div className="flex items-center space-x-3 sm:space-x-4 mb-4 sm:mb-6">
                       <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white text-lg sm:text-2xl font-bold">
                         A
