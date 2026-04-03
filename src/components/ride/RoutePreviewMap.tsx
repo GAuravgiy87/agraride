@@ -1,34 +1,25 @@
 /**
  * ============================================
- * ROUTE PREVIEW MAP COMPONENT
+ * ROUTE PREVIEW MAP - UBER/OLA STYLE
  * ============================================
  * 
- * Production-ready map component for displaying ride routes
+ * Professional map with instant loading and OSRM routing
  * 
  * FEATURES:
- * - Real road-based routing using OSRM (Open Source Routing Machine)
- * - Auto-fit bounds to show entire route
- * - Smooth interactions without flickering
- * - Distance and duration calculation
- * - Custom 3D markers for pickup and destination
- * - Responsive design for mobile and desktop
- * 
- * PERFORMANCE OPTIMIZATIONS:
- * - Map instance persists using useMap() hook
- * - Memoized coordinates to prevent recalculation
- * - Separate RoutingControl component to avoid parent re-renders
- * - Efficient cleanup on unmount
+ * - Instant display with fallback calculation
+ * - OSRM routing in background (like Uber/Ola)
+ * - Zero flickering or reloading
+ * - Smooth professional experience
+ * - Fast response even for far distances
  * 
  * @component
  */
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion } from 'motion/react';
-import { MapContainer, TileLayer, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, useMap, Polyline, Marker } from 'react-leaflet';
 import L from 'leaflet';
-import 'leaflet-routing-machine';
-import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
-import { X, MapPin, Navigation as NavigationIcon, Clock, Route } from 'lucide-react';
+import { X, MapPin, Navigation as NavigationIcon, Clock, Route, AlertCircle } from 'lucide-react';
 import { createPickupIcon3D, createDestinationIcon3D } from './MapIcons';
 
 // Fix Leaflet default icon paths
@@ -40,158 +31,125 @@ L.Icon.Default.mergeOptions({
 });
 
 /**
- * Agra city coordinates database
- * Maps location names to [latitude, longitude] coordinates
+ * Geocode location name to coordinates using Nominatim API
+ * Supports worldwide locations with no restrictions
  */
-const AGRA_COORDINATES: Record<string, [number, number]> = {
-    'Dayalbagh': [27.2261, 78.0125],
-    'St. Johns': [27.1800, 78.0100],
-    'St Johns': [27.1800, 78.0100],
-    'Civil Lines': [27.1800, 78.0100],
-    'Taj Mahal': [27.1751, 78.0421],
-    'Agra Fort': [27.1795, 78.0214],
-    'Sanjay Place': [27.1983, 78.0055],
-    'Sikandra': [27.2205, 77.9505],
-    'ISBT Agra': [27.2155, 77.9427],
-    'Bodla': [27.1900, 77.9500],
-    'Shahganj': [27.1800, 77.9800],
-    'Agra': [27.1767, 78.0081],
-    'default': [27.1767, 78.0081]
-};
+async function geocodeLocation(locationName: string): Promise<[number, number] | null> {
+    try {
+        const res = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationName)}&limit=1`,
+            { signal: AbortSignal.timeout(5000) }
+        );
+        if (res.ok) {
+            const data = await res.json();
+            if (data && data.length > 0) {
+                return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+            }
+        }
+    } catch (e) {
+        console.warn('Geocoding failed for:', locationName, e);
+    }
+    return null;
+}
 
-/**
- * Get coordinates for a given address
- * Performs exact and partial matching against known locations
- * 
- * @param address - Location name or address
- * @returns [latitude, longitude] tuple
- */
-const getCoordinates = (address: string): [number, number] => {
-    if (!address) return AGRA_COORDINATES.default;
-    const addressLower = address.toLowerCase().trim();
-    
-    // Try exact match first
-    const exactMatch = Object.keys(AGRA_COORDINATES).find(k => k.toLowerCase() === addressLower);
-    if (exactMatch) return AGRA_COORDINATES[exactMatch];
-    
-    // Try partial match
-    const partialMatch = Object.keys(AGRA_COORDINATES).find(k => 
-        addressLower.includes(k.toLowerCase()) || k.toLowerCase().includes(addressLower)
-    );
-    if (partialMatch) return AGRA_COORDINATES[partialMatch];
-    
-    return AGRA_COORDINATES.default;
-};
+interface RouteData {
+    distance: number;
+    duration: number;
+    coordinates: [number, number][];
+}
 
 interface RoutingControlProps {
     pickupCoords: [number, number];
     destinationCoords: [number, number];
-    onRouteFound: (distance: number, duration: number) => void;
+    onRouteFound: (data: RouteData) => void;
 }
 
 /**
- * Routing Control Component
- * 
- * Manages Leaflet Routing Machine without causing parent re-renders
- * Uses useMap() hook to access persistent map instance
- * 
- * @component
+ * Uber/Ola Style Routing - Instant Display + Background OSRM
  */
 function RoutingControl({ pickupCoords, destinationCoords, onRouteFound }: RoutingControlProps) {
     const map = useMap();
-    const routingControlRef = useRef<L.Routing.Control | null>(null);
+    const hasInitialized = useRef(false);
+    const onRouteFoundRef = useRef(onRouteFound);
 
     useEffect(() => {
-        if (!map) return;
+        onRouteFoundRef.current = onRouteFound;
+    }, [onRouteFound]);
 
-        // Remove existing routing control to prevent duplicates
-        if (routingControlRef.current) {
-            map.removeControl(routingControlRef.current);
-            routingControlRef.current = null;
-        }
+    useEffect(() => {
+        if (!map || hasInitialized.current) return;
+        hasInitialized.current = true;
 
-        // Create custom icons for waypoints
-        const pickupIcon = createPickupIcon3D();
-        const destIcon = createDestinationIcon3D();
-
-        // Create routing control with OSRM backend
-        const routingControl = L.Routing.control({
-            waypoints: [
-                L.latLng(pickupCoords[0], pickupCoords[1]),
-                L.latLng(destinationCoords[0], destinationCoords[1])
-            ],
-            router: L.Routing.osrmv1({
-                serviceUrl: 'https://router.project-osrm.org/route/v1',
-                profile: 'driving' // Can be: driving, walking, cycling
-            }),
-            lineOptions: {
-                styles: [
-                    { color: '#3b82f6', opacity: 0.8, weight: 6 }
-                ],
-                extendToWaypoints: true,
-                missingRouteTolerance: 0
-            },
-            show: false, // Hide default instructions panel for clean UI
-            addWaypoints: false, // Prevent adding waypoints by clicking
-            routeWhileDragging: false, // Disable dragging waypoints
-            fitSelectedRoutes: true, // Auto-fit bounds to show entire route
-            showAlternatives: false,
-            createMarker: function(i: number, waypoint: any, n: number) {
-                const icon = i === 0 ? pickupIcon : destIcon;
-                return L.marker(waypoint.latLng, {
-                    icon: icon,
-                    draggable: false
-                });
-            }
-        } as any).addTo(map);
-
-        // Listen for route calculation completion
-        routingControl.on('routesfound', function(e: any) {
-            const routes = e.routes;
-            if (routes && routes.length > 0) {
-                const route = routes[0];
-                const distance = route.summary.totalDistance / 1000; // Convert to km
-                const duration = Math.round(route.summary.totalTime / 60); // Convert to minutes
-                onRouteFound(distance, duration);
-
-                // Auto-fit bounds to show entire route with padding
-                const bounds = L.latLngBounds(
-                    route.coordinates.map((coord: any) => [coord.lat, coord.lng])
-                );
-                map.fitBounds(bounds, { padding: [50, 50] });
-            }
+        // INSTANT FALLBACK - Calculate straight-line immediately (like Uber)
+        const straightDistance = map.distance(
+            [pickupCoords[0], pickupCoords[1]], 
+            [destinationCoords[0], destinationCoords[1]]
+        ) / 1000;
+        const estimatedDuration = Math.round(straightDistance * 2.5);
+        
+        // Provide instant result
+        onRouteFoundRef.current({
+            distance: straightDistance,
+            duration: estimatedDuration,
+            coordinates: [pickupCoords, destinationCoords]
         });
 
-        routingControlRef.current = routingControl;
+        // Fit bounds immediately
+        const bounds = L.latLngBounds([pickupCoords, destinationCoords]);
+        map.fitBounds(bounds, { padding: [80, 80], maxZoom: 14 });
 
-        // Cleanup on unmount
-        return () => {
-            if (routingControlRef.current && map) {
-                try {
-                    map.removeControl(routingControlRef.current);
-                } catch (e) {
-                    // Control might already be removed
+        // BACKGROUND OSRM - Fetch real route silently (like Uber)
+        const fetchOSRMRoute = async () => {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+                
+                const response = await fetch(
+                    `https://router.project-osrm.org/route/v1/driving/${pickupCoords[1]},${pickupCoords[0]};${destinationCoords[1]},${destinationCoords[0]}?overview=full&geometries=geojson`,
+                    { signal: controller.signal }
+                );
+                
+                clearTimeout(timeoutId);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.routes && data.routes.length > 0) {
+                        const route = data.routes[0];
+                        const osrmCoords = route.geometry.coordinates.map(
+                            (coord: [number, number]) => [coord[1], coord[0]] as [number, number]
+                        );
+                        
+                        // Update with real OSRM data
+                        onRouteFoundRef.current({
+                            distance: route.distance / 1000,
+                            duration: Math.round(route.duration / 60),
+                            coordinates: osrmCoords
+                        });
+                    }
                 }
-                routingControlRef.current = null;
+            } catch (e) {
+                // Silent failure - fallback already provided
             }
         };
-    }, [map, pickupCoords[0], pickupCoords[1], destinationCoords[0], destinationCoords[1]]);
+
+        // Start OSRM in background
+        fetchOSRMRoute();
+
+        return () => {
+            hasInitialized.current = false;
+        };
+    }, [map, pickupCoords, destinationCoords]);
 
     return null;
 }
 
 /**
- * Map Invalidator Component
- * Ensures map renders correctly after container size changes
- * 
- * @component
+ * Map Invalidator - Ensures proper rendering
  */
 function MapInvalidator() {
     const map = useMap();
     useEffect(() => {
-        const timer = setTimeout(() => {
-            map.invalidateSize();
-        }, 100);
+        const timer = setTimeout(() => map.invalidateSize(), 100);
         return () => clearTimeout(timer);
     }, [map]);
     return null;
@@ -203,34 +161,124 @@ interface RoutePreviewMapProps {
 }
 
 /**
- * Route Preview Map Component
- * 
- * Displays an interactive map showing the route between pickup and destination
- * Includes distance, duration, and price information
- * 
- * @param ride - Ride object containing origin, destination, and price_per_seat
- * @param onClose - Callback function when user closes the map
+ * Route Preview Map Component - Uber/Ola Style
  */
 export const RoutePreviewMap = ({ ride, onClose }: RoutePreviewMapProps) => {
-    // Memoize coordinates to prevent recalculation
-    const pickupCoords = useMemo(() => getCoordinates(ride.origin), [ride.origin]);
-    const destinationCoords = useMemo(() => getCoordinates(ride.destination), [ride.destination]);
+    const [pickupCoords, setPickupCoords] = useState<[number, number] | null>(null);
+    const [destinationCoords, setDestinationCoords] = useState<[number, number] | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
     
-    const [distance, setDistance] = useState<number>(0);
-    const [duration, setDuration] = useState<number>(0);
-    const [isLoading, setIsLoading] = useState(true);
+    const [routeData, setRouteData] = useState<RouteData>({
+        distance: 0,
+        duration: 0,
+        coordinates: []
+    });
+    
+    /**
+     * Get coordinates from ride data
+     * Priority: 1) Stored lat/lng, 2) Geocode location name
+     */
+    useEffect(() => {
+        const getCoordinates = async () => {
+            setLoading(true);
+            setError('');
+            
+            let pickup: [number, number] | null = null;
+            let destination: [number, number] | null = null;
+            
+            // Try to use stored coordinates first
+            if (ride.origin_lat && ride.origin_lng) {
+                pickup = [ride.origin_lat, ride.origin_lng];
+            } else {
+                pickup = await geocodeLocation(ride.origin);
+            }
+            
+            if (ride.dest_lat && ride.dest_lng) {
+                destination = [ride.dest_lat, ride.dest_lng];
+            } else {
+                destination = await geocodeLocation(ride.destination);
+            }
+            
+            if (!pickup || !destination) {
+                setError('Unable to locate pickup or destination. Please try again.');
+                setLoading(false);
+                return;
+            }
+            
+            setPickupCoords(pickup);
+            setDestinationCoords(destination);
+            setLoading(false);
+        };
+        
+        getCoordinates();
+    }, [ride]);
 
-    const handleRouteFound = (dist: number, dur: number) => {
-        setDistance(dist);
-        setDuration(dur);
-        setIsLoading(false);
-    };
+    // Stable callback
+    const handleRouteFound = useCallback((data: RouteData) => {
+        setRouteData(data);
+    }, []);
 
-    // Calculate center point for initial map view
-    const centerPoint: [number, number] = useMemo(() => [
-        (pickupCoords[0] + destinationCoords[0]) / 2,
-        (pickupCoords[1] + destinationCoords[1]) / 2
-    ], [pickupCoords, destinationCoords]);
+    // Calculate center point
+    const centerPoint: [number, number] | null = useMemo(() => {
+        if (!pickupCoords || !destinationCoords) return null;
+        return [
+            (pickupCoords[0] + destinationCoords[0]) / 2,
+            (pickupCoords[1] + destinationCoords[1]) / 2
+        ];
+    }, [pickupCoords, destinationCoords]);
+
+    // Stable map key
+    const mapKey = useMemo(() => 
+        `map-${ride.id || 'preview'}-${ride.origin}-${ride.destination}`,
+        [ride.id, ride.origin, ride.destination]
+    );
+
+    // Memoize icons
+    const pickupIcon = useMemo(() => createPickupIcon3D(), []);
+    const destIcon = useMemo(() => createDestinationIcon3D(), []);
+    
+    // Show error state
+    if (error) {
+        return (
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 top-16 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+            >
+                <motion.div
+                    initial={{ scale: 0.9, y: 20 }}
+                    animate={{ scale: 1, y: 0 }}
+                    className="bg-white rounded-2xl p-8 max-w-md w-full text-center"
+                >
+                    <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Unable to Load Route</h3>
+                    <p className="text-gray-600 mb-6">{error}</p>
+                    <button onClick={onClose} className="btn-primary w-full">
+                        Close
+                    </button>
+                </motion.div>
+            </motion.div>
+        );
+    }
+    
+    // Show loading state while geocoding
+    if (loading || !pickupCoords || !destinationCoords || !centerPoint) {
+        return (
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 top-16 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center"
+            >
+                <div className="bg-white p-8 rounded-2xl shadow-xl flex flex-col items-center gap-4">
+                    <div className="w-8 h-8 border-2 border-blue-600/20 border-t-blue-600 rounded-full animate-spin" />
+                    <p className="text-gray-600 font-bold text-sm">Loading location data...</p>
+                </div>
+            </motion.div>
+        );
+    }
 
     return (
         <motion.div
@@ -267,16 +315,8 @@ export const RoutePreviewMap = ({ ride, onClose }: RoutePreviewMapProps) => {
 
                 {/* Map Container */}
                 <div className="flex-1 relative bg-gray-100" style={{ minHeight: '250px' }}>
-                    {isLoading && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-white/90 z-[1000] pointer-events-none">
-                            <div className="text-center">
-                                <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-                                <p className="text-sm font-medium text-gray-600">Calculating optimal route...</p>
-                            </div>
-                        </div>
-                    )}
-
                     <MapContainer
+                        key={mapKey}
                         center={centerPoint}
                         zoom={12}
                         style={{ height: '100%', width: '100%' }}
@@ -302,9 +342,25 @@ export const RoutePreviewMap = ({ ride, onClose }: RoutePreviewMapProps) => {
                             destinationCoords={destinationCoords}
                             onRouteFound={handleRouteFound}
                         />
+
+                        {/* Markers */}
+                        <Marker position={pickupCoords} icon={pickupIcon} />
+                        <Marker position={destinationCoords} icon={destIcon} />
+
+                        {/* Route Line */}
+                        {routeData.coordinates.length > 0 && (
+                            <Polyline
+                                positions={routeData.coordinates}
+                                color="#3b82f6"
+                                weight={6}
+                                opacity={0.8}
+                                lineCap="round"
+                                lineJoin="round"
+                            />
+                        )}
                     </MapContainer>
 
-                    {/* Route Info Card - Uber/Zomato Style */}
+                    {/* Route Info Card */}
                     <div className="absolute bottom-2 left-2 right-2 sm:bottom-4 sm:left-4 sm:right-4 md:left-auto md:right-4 md:w-80 z-[1000]">
                         <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl p-3 sm:p-5 border border-gray-200">
                             <h4 className="font-bold text-gray-900 mb-3 text-sm sm:text-base flex items-center gap-2">
@@ -318,7 +374,7 @@ export const RoutePreviewMap = ({ ride, onClose }: RoutePreviewMapProps) => {
                                         Distance
                                     </span>
                                     <span className="text-sm font-bold text-gray-900">
-                                        {distance > 0 ? `${distance.toFixed(1)} km` : 'Calculating...'}
+                                        {routeData.distance > 0 ? `${routeData.distance.toFixed(1)} km` : 'Calculating...'}
                                     </span>
                                 </div>
                                 <div className="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
@@ -327,13 +383,21 @@ export const RoutePreviewMap = ({ ride, onClose }: RoutePreviewMapProps) => {
                                         Est. Duration
                                     </span>
                                     <span className="text-sm font-bold text-gray-900">
-                                        {duration > 0 ? `${duration} min` : 'Calculating...'}
+                                        {routeData.duration > 0 ? `${routeData.duration} min` : 'Calculating...'}
                                     </span>
                                 </div>
-                                <div className="flex justify-between items-center pt-2 border-t border-gray-200">
-                                    <span className="text-sm text-gray-600 font-medium">Price per Seat</span>
-                                    <span className="text-xl font-bold text-blue-600">₹{ride.price_per_seat}</span>
+                                <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                    <span className="text-sm text-blue-700 font-semibold">Price per Seat</span>
+                                    <span className="text-xl font-bold text-blue-600">₹{ride.price_per_seat || 'N/A'}</span>
                                 </div>
+                                {routeData.distance > 0 && ride.price_per_seat && (
+                                    <div className="flex justify-between items-center p-2 bg-green-50 rounded-lg border border-green-200">
+                                        <span className="text-xs text-green-700 font-medium">Cost per km</span>
+                                        <span className="text-sm font-bold text-green-600">
+                                            ₹{(ride.price_per_seat / routeData.distance).toFixed(1)}/km
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
