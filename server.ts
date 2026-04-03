@@ -906,12 +906,12 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     // Production: Serve built frontend from dist
-    app.use(express.static(resolve(__dirname, "dist"), { maxAge: "1h" }));
+    app.use(express.static(__dirname, { maxAge: "1h" }));
 
     // SPA fallback: Route all non-API, non-static requests to index.html
     app.use((req, res, next) => {
       if (!req.path.startsWith("/api/") && !req.path.includes(".")) {
-        res.sendFile(resolve(__dirname, "dist/index.html"));
+        res.sendFile(resolve(__dirname, "index.html"));
       } else {
         next();
       }
