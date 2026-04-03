@@ -50,6 +50,7 @@ class UserRepository implements IRepository<User> {
   async create(data: Partial<User>): Promise<User> {
     try {
       const response = await apiService.register(data);
+      localStorage.setItem("agraride_user", JSON.stringify(response.user));
       return response.user;
     } catch (error) {
       console.error("Failed to create user:", error);
@@ -77,7 +78,7 @@ class UserRepository implements IRepository<User> {
   async login(credentials: { email: string; password: string }): Promise<User> {
     try {
       const response = await apiService.login(credentials);
-      localStorage.setItem("auth_token", response.token);
+      localStorage.setItem("agraride_user", JSON.stringify(response.user));
       return response.user;
     } catch (error) {
       console.error("Login failed:", error);

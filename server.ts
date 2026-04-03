@@ -1,62 +1,56 @@
 /**
  * AgraRide Backend Server
- * 
- * This is the main Express.js server that handles:
- * - User authentication (register/login)
- * - Ride management (CRUD operations)
- * - Booking system with counter-offer functionality
- * - Real-time location tracking
- * - Chat/messaging between users
- * - Rating system for drivers and passengers
- * - SOS emergency alerts
- * - Admin dashboard APIs
- * - Database management endpoints
+ * Express.js + Prisma (PostgreSQL)
  */
 
 import express from "express";
 import { createServer as createViteServer } from "vite";
-import db from "./db.ts";
+import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import pg from "pg";
+import dotenv from "dotenv";
 
-/**
- * Initialize and start the Express server
- * Configures middleware, API routes, and Vite dev server
- */
+dotenv.config();
+
+const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter } as any);
+
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
-  // Parse JSON request bodies
-  app.use(express.json({ limit: '5mb' }));
+  app.use(express.json({ limit: "5mb" }));
 
-  // --- API Routes ---
+  // ========== SEED ADMIN ==========
+  await prisma.user.upsert({
+    where: { email: "admin@agraride.com" },
+    update: {},
+    create: {
+      name: "System Admin",
+      email: "admin@agraride.com",
+      password: "admin",
+      role: "admin",
+    },
+  });
 
-  // ========== AUTHENTICATION ENDPOINTS ==========
-  
-  /**
-   * POST /api/register
-   * Register a new user account
-   * Body: { name, email, password, phone, gender, vehicle_type }
-   * Returns: User object with id, name, email, role, gender, vehicle_type
-   */
-  app.post("/api/register", (req, res) => {
+  // ========== AUTH ENDPOINTS ==========
+
+  app.post("/api/register", async (req, res) => {
     const { name, email, password, phone, gender, vehicle_type } = req.body;
     try {
-      const result = db.prepare('INSERT INTO users (name, email, password, phone, gender, vehicle_type) VALUES (?, ?, ?, ?, ?, ?)').run(name, email, password, phone, gender, vehicle_type);
-      res.json({ id: result.lastInsertRowid, name, email, role: 'user', gender, vehicle_type });
+      const user = await prisma.user.create({
+        data: { name, email, password, phone, gender, vehicle_type },
+      });
+      res.json({ id: user.id, name: user.name, email: user.email, role: user.role, gender: user.gender, vehicle_type: user.vehicle_type });
     } catch (e: any) {
       res.status(400).json({ error: e.message });
     }
   });
 
-  /**
-   * POST /api/login
-   * Authenticate user and return user data
-   * Body: { email, password }
-   * Returns: User object or 401 error
-   */
-  app.post("/api/login", (req, res) => {
+  app.post("/api/login", async (req, res) => {
     const { email, password } = req.body;
-    const user = db.prepare('SELECT * FROM users WHERE email = ? AND password = ?').get(email, password) as any;
+    const user = await prisma.user.findFirst({ where: { email, password } });
     if (user) {
       res.json({ id: user.id, name: user.name, email: user.email, role: user.role, gender: user.gender, vehicle_type: user.vehicle_type, profile_image: user.profile_image });
     } else {
@@ -64,747 +58,479 @@ async function startServer() {
     }
   });
 
-  /**
-   * PUT /api/users/:id
-   * Update user profile information
-   * Body: { name?, email?, password?, phone?, gender?, vehicle_type? }
-   * Returns: Updated user object or error
-   */
-  app.put("/api/users/:id", (req, res) => {
-    const { id } = req.params;
+  app.get("/api/users/:id", async (req, res) => {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: Number(req.params.id) },
+        select: { id: true, name: true, email: true, role: true, phone: true, gender: true, vehicle_type: true, profile_image: true },
+      });
+      if (!user) return res.status(404).json({ error: "User not found" });
+      res.json(user);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.put("/api/users/:id", async (req, res) => {
+    const id = Number(req.params.id);
     const { name, email, password, phone, gender, vehicle_type, profile_image } = req.body;
-    
-        
     try {
-      // Check if user exists
-      const existingUser = db.prepare('SELECT * FROM users WHERE id = ?').get(id) as any;
-      if (!existingUser) {
-                return res.status(404).json({ error: "User not found" });
+      const existing = await prisma.user.findUnique({ where: { id } });
+      if (!existing) return res.status(404).json({ error: "User not found" });
+
+      if (email && email !== existing.email) {
+        const taken = await prisma.user.findFirst({ where: { email, NOT: { id } } });
+        if (taken) return res.status(400).json({ error: "Email already in use" });
       }
 
-      
-      // Check if email is being changed and if it's already taken
-      if (email && email !== existingUser.email) {
-        const emailExists = db.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(email, id);
-        if (emailExists) {
-                    return res.status(400).json({ error: "Email already in use" });
-        }
-      }
+      const data: any = {};
+      if (name !== undefined && name !== existing.name) data.name = name;
+      if (email !== undefined && email !== existing.email) data.email = email;
+      if (password?.trim()) data.password = password.trim();
+      if (phone !== undefined && phone !== existing.phone) data.phone = phone;
+      if (gender !== undefined && gender !== existing.gender) data.gender = gender;
+      if (vehicle_type !== undefined && vehicle_type !== existing.vehicle_type) data.vehicle_type = vehicle_type;
+      if (profile_image !== undefined && profile_image !== existing.profile_image) data.profile_image = profile_image;
 
-      // Build update query dynamically based on provided fields
-      const updates: string[] = [];
-      const values: any[] = [];
+      if (Object.keys(data).length === 0) return res.status(400).json({ error: "No changes detected" });
 
-      if (name !== undefined && name !== existingUser.name) {
-        updates.push('name = ?');
-        values.push(name);
-              }
-      if (email !== undefined && email !== existingUser.email) {
-        updates.push('email = ?');
-        values.push(email);
-              }
-      if (password !== undefined && password.trim() !== '') {
-        updates.push('password = ?');
-        values.push(password);
-              }
-      if (phone !== undefined && phone !== existingUser.phone) {
-        updates.push('phone = ?');
-        values.push(phone);
-              }
-      if (gender !== undefined && gender !== existingUser.gender) {
-        updates.push('gender = ?');
-        values.push(gender);
-              }
-      if (vehicle_type !== undefined && vehicle_type !== existingUser.vehicle_type) {
-        updates.push('vehicle_type = ?');
-        values.push(vehicle_type);
-              }
-      if (profile_image !== undefined && profile_image !== existingUser.profile_image) {
-        updates.push('profile_image = ?');
-        values.push(profile_image);
-              }
-
-      if (updates.length === 0) {
-                return res.status(400).json({ error: "No changes detected" });
-      }
-
-      // Add id to values for WHERE clause
-      values.push(id);
-
-      // Execute update
-      const query = `UPDATE users SET ${updates.join(', ')} WHERE id = ?`;
-            
-      const result = db.prepare(query).run(...values);
-      
-      // Fetch and return updated user
-      const updatedUser = db.prepare('SELECT id, name, email, role, phone, gender, vehicle_type, profile_image FROM users WHERE id = ?').get(id);
-            
-      if (!updatedUser) {
-                return res.status(500).json({ error: "Failed to fetch updated user" });
-      }
-
-      res.json(updatedUser);
+      const updated = await prisma.user.update({ where: { id }, data });
+      const { password: _, ...safeUser } = updated;
+      res.json(safeUser);
     } catch (e: any) {
-            res.status(500).json({ error: e.message || "Internal server error" });
+      res.status(500).json({ error: e.message });
     }
   });
 
-  /**
-   * GET /api/users/:id
-   * Get user profile information
-   * Returns: User object without password
-   */
-  app.get("/api/users/:id", (req, res) => {
-    const { id } = req.params;
-        try {
-      const user = db.prepare('SELECT id, name, email, role, phone, gender, vehicle_type, profile_image FROM users WHERE id = ?').get(id);
-      if (!user) {
-                return res.status(404).json({ error: "User not found" });
-      }
-            res.json(user);
-    } catch (e: any) {
-            res.status(500).json({ error: e.message });
-    }
+  app.get("/api/debug/users", async (_req, res) => {
+    const users = await prisma.user.findMany({ select: { id: true, name: true, email: true, role: true } });
+    res.json(users);
   });
 
-  // ========== DEBUG ENDPOINT ==========
-  
-  /**
-   * GET /api/debug/users
-   * List all users (for debugging)
-   * Returns: Array of all users
-   */
-  app.get("/api/debug/users", (req, res) => {
-    try {
-      const users = db.prepare('SELECT id, name, email, role FROM users').all();
-            res.json(users);
-    } catch (e: any) {
-            res.status(500).json({ error: e.message });
-    }
+  // ========== RIDE ENDPOINTS ==========
+
+  app.get("/api/rides", async (_req, res) => {
+    const rides = await prisma.ride.findMany({
+      where: { status: "active" },
+      orderBy: { departure_time: "asc" },
+      include: { driver: { select: { name: true, gender: true, vehicle_type: true, phone: true } } },
+    });
+    res.json(rides.map(r => ({ ...r, driver_name: r.driver.name, driver_gender: r.driver.gender, driver_vehicle: r.driver.vehicle_type, driver_phone: r.driver.phone })));
   });
 
-  // ========== RIDE MANAGEMENT ENDPOINTS ==========
-  
-  /**
-   * GET /api/rides
-   * Fetch all active rides with driver information
-   * Returns: Array of ride objects with driver details
-   */
-  app.get("/api/rides", (req, res) => {
-    const rides = db.prepare(`
-      SELECT r.*, u.name as driver_name, u.gender as driver_gender, u.vehicle_type as driver_vehicle, u.phone as driver_phone
-      FROM rides r 
-      JOIN users u ON r.driver_id = u.id 
-      WHERE r.status = 'active'
-      ORDER BY r.departure_time ASC
-    `).all();
+  app.get("/api/rides/driver/:driverId", async (req, res) => {
+    const rides = await prisma.ride.findMany({
+      where: { driver_id: Number(req.params.driverId) },
+      orderBy: { departure_time: "desc" },
+    });
     res.json(rides);
   });
 
-  app.post("/api/rides/complete/:id", (req, res) => {
-    const { id } = req.params;
-    try {
-      db.prepare("UPDATE rides SET status = 'completed' WHERE id = ?").run(id);
-      res.json({ success: true });
-    } catch (e: any) {
-      res.status(400).json({ error: e.message });
-    }
-  });
-
-  app.get("/api/rides/driver/:driverId", (req, res) => {
-    const { driverId } = req.params;
-    const rides = db.prepare(`
-      SELECT * FROM rides WHERE driver_id = ? ORDER BY departure_time DESC
-    `).all(driverId);
-    res.json(rides);
-  });
-
-  app.post("/api/rides", (req, res) => {
+  app.post("/api/rides", async (req, res) => {
     const { driver_id, origin, destination, departure_time, available_seats, price_per_seat, driver_vehicle, driver_vehicle_description, license_plate, license_plate_verified, origin_lat, origin_lng, dest_lat, dest_lng } = req.body;
     try {
-      const result = db.prepare(`
-        INSERT INTO rides (driver_id, origin, destination, departure_time, available_seats, price_per_seat, driver_vehicle, driver_vehicle_description, license_plate, license_plate_verified, origin_lat, origin_lng, dest_lat, dest_lng) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(driver_id, origin, destination, departure_time, available_seats, price_per_seat, driver_vehicle || null, driver_vehicle_description || null, license_plate || null, license_plate_verified ? 1 : 0, origin_lat, origin_lng, dest_lat, dest_lng);
-      res.json({ id: result.lastInsertRowid });
+      const ride = await prisma.ride.create({
+        data: { driver_id: Number(driver_id), origin, destination, departure_time, available_seats: Number(available_seats), price_per_seat: Number(price_per_seat), driver_vehicle, driver_vehicle_description, license_plate, license_plate_verified: !!license_plate_verified, origin_lat, origin_lng, dest_lat, dest_lng },
+      });
+      res.json({ id: ride.id });
     } catch (e: any) {
       res.status(400).json({ error: e.message });
     }
   });
 
-  app.put("/api/rides/:id", (req, res) => {
-    const { id } = req.params;
+  app.put("/api/rides/:id", async (req, res) => {
     const { origin, destination, departure_time, available_seats, price_per_seat, driver_vehicle, driver_vehicle_description, license_plate, license_plate_verified, origin_lat, origin_lng, dest_lat, dest_lng } = req.body;
     try {
-      db.prepare(`
-        UPDATE rides 
-        SET origin = ?, destination = ?, departure_time = ?, available_seats = ?, price_per_seat = ?, driver_vehicle = ?, driver_vehicle_description = ?, license_plate = ?, license_plate_verified = ?, origin_lat = ?, origin_lng = ?, dest_lat = ?, dest_lng = ?
-        WHERE id = ?
-      `).run(origin, destination, departure_time, available_seats, price_per_seat, driver_vehicle || null, driver_vehicle_description || null, license_plate || null, license_plate_verified ? 1 : 0, origin_lat, origin_lng, dest_lat, dest_lng, id);
+      await prisma.ride.update({
+        where: { id: Number(req.params.id) },
+        data: { origin, destination, departure_time, available_seats: Number(available_seats), price_per_seat: Number(price_per_seat), driver_vehicle, driver_vehicle_description, license_plate, license_plate_verified: !!license_plate_verified, origin_lat, origin_lng, dest_lat, dest_lng },
+      });
       res.json({ success: true });
     } catch (e: any) {
       res.status(400).json({ error: e.message });
     }
   });
 
-  /**
-   * POST /api/verify-license-plate
-   * Verify a license plate number format (Indian format)
-   * Body: { plateNumber }
-   * Returns: { valid: boolean, format: string }
-   */
+  app.post("/api/rides/complete/:id", async (req, res) => {
+    try {
+      await prisma.ride.update({ where: { id: Number(req.params.id) }, data: { status: "completed" } });
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.delete("/api/rides/:id", async (req, res) => {
+    const id = Number(req.params.id);
+    try {
+      await prisma.sosAlert.deleteMany({ where: { ride_id: id } });
+      await prisma.rating.deleteMany({ where: { ride_id: id } });
+      await prisma.message.deleteMany({ where: { ride_id: id } });
+      await prisma.location.deleteMany({ where: { ride_id: id } });
+      await prisma.booking.deleteMany({ where: { ride_id: id } });
+      await prisma.ride.delete({ where: { id } });
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
   app.post("/api/verify-license-plate", (req, res) => {
     const { plateNumber } = req.body;
-    
-    if (!plateNumber) {
-      return res.status(400).json({ error: "Plate number is required" });
-    }
-
-    // Indian license plate regex patterns
+    if (!plateNumber) return res.status(400).json({ error: "Plate number is required" });
     const patterns = [
       { regex: /^[A-Z]{2}\d{2}[A-Z]{1,2}\d{4}$/, name: "Standard (UP80AB1234)" },
       { regex: /^[A-Z]{2}\d{2}[A-Z]\d{4}$/, name: "Old Format (UP80A1234)" },
       { regex: /^[A-Z]{2}\d{6}$/, name: "Very Old (UP801234)" },
     ];
-
-    const cleanedPlate = plateNumber.toUpperCase().replace(/\s+/g, '');
-    
-    for (const pattern of patterns) {
-      if (pattern.regex.test(cleanedPlate)) {
-        return res.json({ 
-          valid: true, 
-          format: pattern.name,
-          cleanedPlate: cleanedPlate
-        });
-      }
+    const cleaned = plateNumber.toUpperCase().replace(/\s+/g, "");
+    for (const p of patterns) {
+      if (p.regex.test(cleaned)) return res.json({ valid: true, format: p.name, cleanedPlate: cleaned });
     }
-
-    res.json({ 
-      valid: false, 
-      format: null,
-      cleanedPlate: cleanedPlate
-    });
+    res.json({ valid: false, format: null, cleanedPlate: cleaned });
   });
 
-  app.delete("/api/rides/:id", (req, res) => {
-    const { id } = req.params;
-    try {
-      // Delete all related records first (cascade delete)
-      db.prepare("DELETE FROM bookings WHERE ride_id = ?").run(id);
-      db.prepare("DELETE FROM locations WHERE ride_id = ?").run(id);
-      db.prepare("DELETE FROM messages WHERE ride_id = ?").run(id);
-      db.prepare("DELETE FROM ratings WHERE ride_id = ?").run(id);
-      db.prepare("DELETE FROM sos_alerts WHERE ride_id = ?").run(id);
-      // Finally delete the ride
-      db.prepare("DELETE FROM rides WHERE id = ?").run(id);
-      res.json({ success: true });
-    } catch (e: any) {
-            res.status(400).json({ error: e.message });
-    }
-  });
+  // ========== BOOKING ENDPOINTS ==========
 
-  // ========== BOOKING MANAGEMENT ENDPOINTS ==========
-  
-  /**
-   * POST /api/bookings
-   * Create a new booking request (with optional counter-offer)
-   * Body: { ride_id, passenger_id, seats_booked, counter_offer_price? }
-   * Returns: Success message or error
-   */
-  app.post("/api/bookings", (req, res) => {
+  app.post("/api/bookings", async (req, res) => {
     const { ride_id, passenger_id, seats_booked, counter_offer_price } = req.body;
     try {
-      // Check if user already has a pending or confirmed booking for this ride
-      const existingBooking = db.prepare("SELECT * FROM bookings WHERE ride_id = ? AND passenger_id = ? AND status IN ('pending', 'confirmed')").get(ride_id, passenger_id) as any;
-      if (existingBooking) {
-        return res.status(400).json({ error: "You have already requested or booked this ride" });
-      }
+      const existing = await prisma.booking.findFirst({
+        where: { ride_id: Number(ride_id), passenger_id: Number(passenger_id), status: { in: ["pending", "confirmed"] } },
+      });
+      if (existing) return res.status(400).json({ error: "You have already requested or booked this ride" });
 
-      const ride = db.prepare('SELECT available_seats FROM rides WHERE id = ?').get(ride_id) as any;
-      if (ride.available_seats < seats_booked) {
-        return res.status(400).json({ error: "Not enough seats available" });
-      }
+      const ride = await prisma.ride.findUnique({ where: { id: Number(ride_id) } });
+      if (!ride || ride.available_seats < Number(seats_booked)) return res.status(400).json({ error: "Not enough seats available" });
 
-      db.prepare('INSERT INTO bookings (ride_id, passenger_id, seats_booked, status, counter_offer_price) VALUES (?, ?, ?, ?, ?)').run(ride_id, passenger_id, seats_booked, 'pending', counter_offer_price || null);
+      await prisma.booking.create({
+        data: { ride_id: Number(ride_id), passenger_id: Number(passenger_id), seats_booked: Number(seats_booked), status: "pending", counter_offer_price: counter_offer_price ? Number(counter_offer_price) : null },
+      });
       res.json({ success: true, message: counter_offer_price ? "Counter offer sent to driver" : "Booking request sent to driver" });
     } catch (e: any) {
       res.status(400).json({ error: e.message });
     }
   });
 
-  app.post("/api/bookings/accept/:id", (req, res) => {
-    const { id } = req.params;
+  app.post("/api/bookings/accept/:id", async (req, res) => {
     try {
-      const booking = db.prepare('SELECT * FROM bookings WHERE id = ?').get(id) as any;
+      const booking = await prisma.booking.findUnique({ where: { id: Number(req.params.id) } });
       if (!booking) return res.status(404).json({ error: "Booking not found" });
-
-      db.prepare("UPDATE bookings SET status = 'confirmed' WHERE id = ?").run(id);
-      db.prepare('UPDATE rides SET available_seats = available_seats - ? WHERE id = ?').run(booking.seats_booked, booking.ride_id);
-      
+      await prisma.booking.update({ where: { id: booking.id }, data: { status: "confirmed" } });
+      await prisma.ride.update({ where: { id: booking.ride_id }, data: { available_seats: { decrement: booking.seats_booked } } });
       res.json({ success: true });
     } catch (e: any) {
       res.status(400).json({ error: e.message });
     }
   });
 
-  app.post("/api/bookings/reject/:id", (req, res) => {
-    const { id } = req.params;
+  app.post("/api/bookings/reject/:id", async (req, res) => {
     try {
-      db.prepare("UPDATE bookings SET status = 'rejected' WHERE id = ?").run(id);
+      await prisma.booking.update({ where: { id: Number(req.params.id) }, data: { status: "rejected" } });
       res.json({ success: true });
     } catch (e: any) {
       res.status(400).json({ error: e.message });
     }
   });
 
-  app.get("/api/bookings/driver/:driverId", (req, res) => {
-    const { driverId } = req.params;
-    const bookings = db.prepare(`
-      SELECT b.*, r.origin, r.destination, r.departure_time, r.price_per_seat, u.name as passenger_name, u.phone as passenger_phone, u.gender as passenger_gender
-      FROM bookings b
-      JOIN rides r ON b.ride_id = r.id
-      JOIN users u ON b.passenger_id = u.id
-      WHERE r.driver_id = ? AND b.status = 'pending'
-      ORDER BY b.id DESC
-    `).all(driverId);
-    res.json(bookings);
+  app.get("/api/bookings/driver/:driverId", async (req, res) => {
+    const bookings = await prisma.booking.findMany({
+      where: { ride: { driver_id: Number(req.params.driverId) }, status: "pending" },
+      orderBy: { id: "desc" },
+      include: {
+        ride: { select: { origin: true, destination: true, departure_time: true, price_per_seat: true } },
+        passenger: { select: { name: true, phone: true, gender: true } },
+      },
+    });
+    res.json(bookings.map(b => ({ ...b, origin: b.ride.origin, destination: b.ride.destination, departure_time: b.ride.departure_time, price_per_seat: b.ride.price_per_seat, passenger_name: b.passenger.name, passenger_phone: b.passenger.phone, passenger_gender: b.passenger.gender })));
   });
 
-  app.get("/api/bookings/passenger/:passengerId", (req, res) => {
-    const { passengerId } = req.params;
-    const bookings = db.prepare(`
-      SELECT b.*, r.origin, r.destination, r.departure_time, r.status as ride_status, r.driver_id, u.name as driver_name
-      FROM bookings b
-      JOIN rides r ON b.ride_id = r.id
-      JOIN users u ON r.driver_id = u.id
-      WHERE b.passenger_id = ?
-      ORDER BY r.departure_time DESC
-    `).all(passengerId);
-    res.json(bookings);
+  app.get("/api/bookings/passenger/:passengerId", async (req, res) => {
+    const bookings = await prisma.booking.findMany({
+      where: { passenger_id: Number(req.params.passengerId) },
+      orderBy: { ride: { departure_time: "desc" } },
+      include: {
+        ride: { select: { origin: true, destination: true, departure_time: true, status: true, driver_id: true, driver: { select: { name: true } } } },
+      },
+    });
+    res.json(bookings.map(b => ({ ...b, origin: b.ride.origin, destination: b.ride.destination, departure_time: b.ride.departure_time, ride_status: b.ride.status, driver_id: b.ride.driver_id, driver_name: b.ride.driver.name })));
   });
 
-  app.get("/api/bookings/check/:rideId/:passengerId", (req, res) => {
-    const { rideId, passengerId } = req.params;
-    const booking = db.prepare('SELECT * FROM bookings WHERE ride_id = ? AND passenger_id = ?').get(rideId, passengerId);
+  app.get("/api/bookings/check/:rideId/:passengerId", async (req, res) => {
+    const booking = await prisma.booking.findFirst({
+      where: { ride_id: Number(req.params.rideId), passenger_id: Number(req.params.passengerId) },
+    });
     res.json({ hasBooked: !!booking, booking });
   });
 
-  // ========== ADMIN DASHBOARD ENDPOINTS ==========
-  
-  /**
-   * GET /api/admin/stats
-   * Fetch comprehensive system statistics for admin dashboard
-   * Returns: { users, rides, bookings, recentRides, detailedBookings, activeSOS }
-   */
-  app.get("/api/admin/stats", (req, res) => {
-    const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get() as any;
-    const rideCount = db.prepare('SELECT COUNT(*) as count FROM rides').get() as any;
-    const bookingCount = db.prepare('SELECT COUNT(*) as count FROM bookings').get() as any;
-    const recentRides = db.prepare('SELECT r.*, u.name as driver_name FROM rides r JOIN users u ON r.driver_id = u.id ORDER BY r.id DESC LIMIT 10').all();
-    
-    const detailedBookings = db.prepare(`
-      SELECT 
-        b.id, 
-        b.seats_booked, 
-        p.name as passenger_name, 
-        d.name as driver_name, 
-        r.origin, 
-        r.destination, 
-        r.status as ride_status,
-        r.id as ride_id
-      FROM bookings b
-      JOIN users p ON b.passenger_id = p.id
-      JOIN rides r ON b.ride_id = r.id
-      JOIN users d ON r.driver_id = d.id
-      ORDER BY b.id DESC
-    `).all();
+  // ========== ADMIN ENDPOINTS ==========
 
-    const activeSOS = db.prepare(`
-      SELECT 
-        s.*, 
-        u.name as user_name, 
-        r.origin, 
-        r.destination,
-        r.driver_id,
-        (SELECT name FROM users WHERE id = r.driver_id) as driver_name,
-        (SELECT GROUP_CONCAT(users.name) FROM bookings JOIN users ON bookings.passenger_id = users.id WHERE bookings.ride_id = r.id) as passengers
-      FROM sos_alerts s
-      JOIN users u ON s.user_id = u.id
-      JOIN rides r ON s.ride_id = r.id
-      WHERE s.status = 'active'
-    `).all();
-    
+  app.get("/api/admin/stats", async (_req, res) => {
+    const [users, rides, bookings, recentRides, detailedBookings, activeSOS] = await Promise.all([
+      prisma.user.count(),
+      prisma.ride.count(),
+      prisma.booking.count(),
+      prisma.ride.findMany({ take: 10, orderBy: { id: "desc" }, include: { driver: { select: { name: true } } } }),
+      prisma.booking.findMany({
+        orderBy: { id: "desc" },
+        include: {
+          passenger: { select: { name: true } },
+          ride: { select: { id: true, origin: true, destination: true, status: true, driver: { select: { name: true } } } },
+        },
+      }),
+      prisma.sosAlert.findMany({
+        where: { status: "active" },
+        include: {
+          user: { select: { name: true } },
+          ride: { select: { origin: true, destination: true, driver_id: true, driver: { select: { name: true } }, bookings: { include: { passenger: { select: { name: true } } } } } },
+        },
+      }),
+    ]);
+
     res.json({
-      users: userCount.count,
-      rides: rideCount.count,
-      bookings: bookingCount.count,
-      recentRides,
-      detailedBookings,
-      activeSOS
+      users,
+      rides,
+      bookings,
+      recentRides: recentRides.map(r => ({ ...r, driver_name: r.driver.name })),
+      detailedBookings: detailedBookings.map(b => ({ id: b.id, seats_booked: b.seats_booked, passenger_name: b.passenger.name, driver_name: b.ride.driver.name, origin: b.ride.origin, destination: b.ride.destination, ride_status: b.ride.status, ride_id: b.ride.id })),
+      activeSOS: activeSOS.map(s => ({ ...s, user_name: s.user.name, origin: s.ride.origin, destination: s.ride.destination, driver_id: s.ride.driver_id, driver_name: s.ride.driver.name, passengers: s.ride.bookings.map(b => b.passenger.name).join(", ") })),
     });
   });
 
-  // Admin - Get all rides with driver details
-  app.get("/api/admin/rides", (req, res) => {
-    const rides = db.prepare(`
-      SELECT r.*, u.name as driver_name, u.phone as driver_phone, u.gender as driver_gender
-      FROM rides r 
-      JOIN users u ON r.driver_id = u.id 
-      ORDER BY r.id DESC
-    `).all();
-    res.json(rides);
+  app.get("/api/admin/rides", async (_req, res) => {
+    const rides = await prisma.ride.findMany({
+      orderBy: { id: "desc" },
+      include: { driver: { select: { name: true, phone: true, gender: true } } },
+    });
+    res.json(rides.map(r => ({ ...r, driver_name: r.driver.name, driver_phone: r.driver.phone, driver_gender: r.driver.gender })));
   });
 
-  // Admin - Get all users
-  app.get("/api/admin/users", (req, res) => {
-    const users = db.prepare('SELECT id, name, email, phone, gender, vehicle_type, role FROM users ORDER BY id DESC').all();
+  app.get("/api/admin/users", async (_req, res) => {
+    const users = await prisma.user.findMany({
+      orderBy: { id: "desc" },
+      select: { id: true, name: true, email: true, phone: true, gender: true, vehicle_type: true, role: true },
+    });
     res.json(users);
   });
 
-  // Admin - Delete user
-  app.delete("/api/admin/users/:id", (req, res) => {
-    const { id } = req.params;
+  app.delete("/api/admin/users/:id", async (req, res) => {
+    const id = Number(req.params.id);
     try {
-      // First, get all rides by this user
-      const userRides = db.prepare('SELECT id FROM rides WHERE driver_id = ?').all(id) as any[];
-      
-      // Delete all data related to user's rides
-      for (const ride of userRides) {
-        db.prepare('DELETE FROM bookings WHERE ride_id = ?').run(ride.id);
-        db.prepare('DELETE FROM locations WHERE ride_id = ?').run(ride.id);
-        db.prepare('DELETE FROM messages WHERE ride_id = ?').run(ride.id);
-        db.prepare('DELETE FROM ratings WHERE ride_id = ?').run(ride.id);
-        db.prepare('DELETE FROM sos_alerts WHERE ride_id = ?').run(ride.id);
+      const userRides = await prisma.ride.findMany({ where: { driver_id: id }, select: { id: true } });
+      const rideIds = userRides.map(r => r.id);
+      if (rideIds.length > 0) {
+        await prisma.sosAlert.deleteMany({ where: { ride_id: { in: rideIds } } });
+        await prisma.rating.deleteMany({ where: { ride_id: { in: rideIds } } });
+        await prisma.message.deleteMany({ where: { ride_id: { in: rideIds } } });
+        await prisma.location.deleteMany({ where: { ride_id: { in: rideIds } } });
+        await prisma.booking.deleteMany({ where: { ride_id: { in: rideIds } } });
+        await prisma.ride.deleteMany({ where: { driver_id: id } });
       }
-      
-      // Delete user's rides
-      db.prepare('DELETE FROM rides WHERE driver_id = ?').run(id);
-      
-      // Delete user's bookings (as passenger)
-      db.prepare('DELETE FROM bookings WHERE passenger_id = ?').run(id);
-      
-      // Delete user's locations
-      db.prepare('DELETE FROM locations WHERE user_id = ?').run(id);
-      
-      // Delete user's messages
-      db.prepare('DELETE FROM messages WHERE sender_id = ? OR receiver_id = ?').run(id, id);
-      
-      // Delete user's ratings
-      db.prepare('DELETE FROM ratings WHERE rater_id = ? OR rated_user_id = ?').run(id, id);
-      
-      // Delete user's SOS alerts
-      db.prepare('DELETE FROM sos_alerts WHERE user_id = ?').run(id);
-      
-      // Finally delete the user
-      db.prepare('DELETE FROM users WHERE id = ?').run(id);
-      
-      res.json({ success: true });
-    } catch (e: any) {
-            res.status(400).json({ error: e.message });
-    }
-  });
-
-  // Admin - Update user role
-  app.put("/api/admin/users/:id/role", (req, res) => {
-    const { id } = req.params;
-    const { role } = req.body;
-    try {
-      db.prepare('UPDATE users SET role = ? WHERE id = ?').run(role, id);
+      await prisma.booking.deleteMany({ where: { passenger_id: id } });
+      await prisma.location.deleteMany({ where: { user_id: id } });
+      await prisma.message.deleteMany({ where: { OR: [{ sender_id: id }, { receiver_id: id }] } });
+      await prisma.rating.deleteMany({ where: { OR: [{ rater_id: id }, { rated_user_id: id }] } });
+      await prisma.sosAlert.deleteMany({ where: { user_id: id } });
+      await prisma.user.delete({ where: { id } });
       res.json({ success: true });
     } catch (e: any) {
       res.status(400).json({ error: e.message });
     }
   });
 
-  // ========== SOS EMERGENCY ALERT ENDPOINTS ==========
-  
-  /**
-   * POST /api/sos
-   * Create an emergency SOS alert for a ride
-   * Body: { ride_id, user_id, location?, timestamp? }
-   * Returns: Success confirmation with alert details
-   */
-  app.post("/api/sos", (req, res) => {
-    const { ride_id, user_id, location, timestamp } = req.body;
-    
+  app.put("/api/admin/users/:id/role", async (req, res) => {
     try {
-      // Validate required fields
-      if (!ride_id || !user_id) {
-        return res.status(400).json({ error: "ride_id and user_id are required" });
-      }
-
-      // Check if ride exists and is active
-      const ride = db.prepare('SELECT * FROM rides WHERE id = ? AND status = ?').get(ride_id, 'active');
-      if (!ride) {
-        return res.status(404).json({ error: "Active ride not found" });
-      }
-
-      // Check if user exists
-      const user = db.prepare('SELECT * FROM users WHERE id = ?').get(user_id);
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
-
-      // Check if there's already an active SOS for this ride
-      const existingSOS = db.prepare('SELECT * FROM sos_alerts WHERE ride_id = ? AND status = ?').get(ride_id, 'active');
-      if (existingSOS) {
-        return res.status(409).json({ error: "An active SOS alert already exists for this ride" });
-      }
-
-      // Insert SOS alert
-      const result = db.prepare('INSERT INTO sos_alerts (ride_id, user_id) VALUES (?, ?)').run(ride_id, user_id);
-      
-      // If location data is provided, store it
-      if (location && location.latitude && location.longitude) {
-        try {
-          db.prepare('INSERT INTO locations (ride_id, user_id, latitude, longitude) VALUES (?, ?, ?, ?)')
-            .run(ride_id, user_id, location.latitude, location.longitude);
-        } catch (locationError) {
-          console.warn('Failed to store SOS location:', locationError);
-          // Don't fail the SOS creation if location storage fails
-        }
-      }
-
-      res.json({ 
-        success: true, 
-        alert_id: result.lastInsertRowid,
-        message: "Emergency alert created successfully. Authorities have been notified.",
-        timestamp: new Date().toISOString()
-      });
-    } catch (e: any) {
-      console.error('SOS creation error:', e);
-      res.status(500).json({ error: "Failed to create emergency alert. Please try again." });
-    }
-  });
-
-  /**
-   * POST /api/sos/resolve/:id
-   * Resolve an SOS alert with a reason
-   * Body: { reason, resolved_by }
-   * Returns: Success confirmation
-   */
-  app.post("/api/sos/resolve/:id", (req, res) => {
-    const { id } = req.params;
-    const { reason, resolved_by } = req.body;
-    try {
-      // Validate that reason is provided
-      if (!reason || reason.trim() === '') {
-        return res.status(400).json({ error: "Resolution reason is required" });
-      }
-      db.prepare("UPDATE sos_alerts SET status = 'resolved', resolved_reason = ?, resolved_by = ?, resolved_at = CURRENT_TIMESTAMP WHERE id = ?")
-        .run(reason.trim(), resolved_by, id);
+      await prisma.user.update({ where: { id: Number(req.params.id) }, data: { role: req.body.role } });
       res.json({ success: true });
     } catch (e: any) {
       res.status(400).json({ error: e.message });
     }
   });
 
-  // ========== CHAT/MESSAGING ENDPOINTS ==========
-  
-  /**
-   * GET /api/messages/:rideId
-   * Fetch all messages for a specific ride
-   * Returns: Array of message objects with sender information
-   */
-  app.get("/api/messages/:rideId", (req, res) => {
-    const { rideId } = req.params;
-    const messages = db.prepare(`
-      SELECT m.*, u.name as sender_name 
-      FROM messages m 
-      JOIN users u ON m.sender_id = u.id 
-      WHERE m.ride_id = ? 
-      ORDER BY m.timestamp ASC
-    `).all(rideId);
-    res.json(messages);
-  });
+  // ========== ADMIN DB ENDPOINTS ==========
 
-  app.post("/api/messages", (req, res) => {
-    const { ride_id, sender_id, receiver_id, content } = req.body;
+  app.get("/api/admin/db/tables", async (_req, res) => {
     try {
-      db.prepare(`
-        INSERT INTO messages (ride_id, sender_id, receiver_id, content) 
-        VALUES (?, ?, ?, ?)
-      `).run(ride_id, sender_id, receiver_id, content);
-      res.json({ success: true });
-    } catch (e: any) {
-      res.status(400).json({ error: e.message });
-    }
-  });
-
-  app.get("/api/inbox/:userId", (req, res) => {
-    const { userId } = req.params;
-    const chats = db.prepare(`
-      SELECT DISTINCT 
-        m.ride_id, 
-        r.origin, 
-        r.destination,
-        u.name as other_party_name,
-        u.id as other_party_id
-      FROM messages m
-      JOIN rides r ON m.ride_id = r.id
-      JOIN users u ON (CASE WHEN m.sender_id = ? THEN m.receiver_id ELSE m.sender_id END) = u.id
-      WHERE m.sender_id = ? OR m.receiver_id = ?
-    `).all(userId, userId, userId);
-    res.json(chats);
-  });
-
-  // ========== RATING SYSTEM ENDPOINTS ==========
-  
-  /**
-   * POST /api/ratings
-   * Submit a rating for a user after a completed ride
-   * Body: { ride_id, rater_id, rated_user_id, rating, comment }
-   * Returns: Success confirmation or error if already rated
-   */
-  app.post("/api/ratings", (req, res) => {
-    const { ride_id, rater_id, rated_user_id, rating, comment } = req.body;
-    try {
-      // Check if user has already rated this ride/user combination
-      const existingRating = db.prepare(`
-        SELECT id FROM ratings WHERE ride_id = ? AND rater_id = ? AND rated_user_id = ?
-      `).get(ride_id, rater_id, rated_user_id);
-      
-      if (existingRating) {
-        return res.status(400).json({ error: "You have already rated this ride" });
-      }
-      
-      db.prepare(`
-        INSERT INTO ratings (ride_id, rater_id, rated_user_id, rating, comment) 
-        VALUES (?, ?, ?, ?, ?)
-      `).run(ride_id, rater_id, rated_user_id, rating, comment);
-      res.json({ success: true });
-    } catch (e: any) {
-      // Handle unique constraint violation
-      if (e.message && e.message.includes('UNIQUE constraint failed')) {
-        return res.status(400).json({ error: "You have already rated this ride" });
-      }
-      res.status(400).json({ error: e.message });
-    }
-  });
-
-  app.get("/api/ratings/:userId", (req, res) => {
-    const { userId } = req.params;
-    const ratings = db.prepare(`
-      SELECT r.*, u.name as rater_name 
-      FROM ratings r 
-      JOIN users u ON r.rater_id = u.id 
-      WHERE r.rated_user_id = ?
-    `).all(userId);
-    
-    const avgRating = db.prepare('SELECT AVG(rating) as avg FROM ratings WHERE rated_user_id = ?').get(userId) as any;
-    
-    res.json({ ratings, average: avgRating.avg || 0 });
-  });
-
-  /**
-   * GET /api/ratings/check/:rideId/:raterId/:ratedUserId
-   * Check if a user has already rated a specific ride/user combination
-   * Returns: { hasRated: boolean, rating?: object }
-   */
-  app.get("/api/ratings/check/:rideId/:raterId/:ratedUserId", (req, res) => {
-    const { rideId, raterId, ratedUserId } = req.params;
-    try {
-      const rating = db.prepare(`
-        SELECT * FROM ratings WHERE ride_id = ? AND rater_id = ? AND rated_user_id = ?
-      `).get(rideId, raterId, ratedUserId);
-      
-      res.json({ hasRated: !!rating, rating });
-    } catch (e: any) {
-      res.status(400).json({ error: e.message });
-    }
-  });
-
-  // ========== REAL-TIME LOCATION TRACKING ENDPOINTS ==========
-  
-  /**
-   * POST /api/locations
-   * Update or create location data for a user in a ride
-   * Body: { ride_id, user_id, latitude, longitude }
-   * Returns: Success confirmation
-   */
-  app.post("/api/locations", (req, res) => {
-    const { ride_id, user_id, latitude, longitude } = req.body;
-    try {
-      const existing = db.prepare('SELECT id FROM locations WHERE ride_id = ? AND user_id = ?').get(ride_id, user_id);
-      if (existing) {
-        db.prepare('UPDATE locations SET latitude = ?, longitude = ?, updated_at = CURRENT_TIMESTAMP WHERE ride_id = ? AND user_id = ?')
-          .run(latitude, longitude, ride_id, user_id);
-      } else {
-        db.prepare('INSERT INTO locations (ride_id, user_id, latitude, longitude) VALUES (?, ?, ?, ?)')
-          .run(ride_id, user_id, latitude, longitude);
-      }
-      res.json({ success: true });
-    } catch (e: any) {
-      res.status(400).json({ error: e.message });
-    }
-  });
-
-  app.get("/api/locations/:rideId", (req, res) => {
-    const { rideId } = req.params;
-    const locations = db.prepare(`
-      SELECT l.*, u.name as user_name, u.id as user_id
-      FROM locations l
-      JOIN users u ON l.user_id = u.id
-      WHERE l.ride_id = ?
-    `).all(rideId);
-    res.json(locations);
-  });
-
-  // ========== DATABASE MANAGEMENT ENDPOINTS (Admin Only) ==========
-  
-  /**
-   * GET /api/admin/db/tables
-   * List all database tables
-   * Returns: Array of table names
-   */
-  app.get("/api/admin/db/tables", (req, res) => {
-    try {
-      const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all();
+      const tables: any[] = await prisma.$queryRaw`
+        SELECT table_name as name FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+      `;
       res.json(tables);
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
   });
 
-  app.get("/api/admin/db/table/:tableName", (req, res) => {
+  app.get("/api/admin/db/table/:tableName", async (req, res) => {
     const { tableName } = req.params;
+    // Whitelist to prevent SQL injection
+    const allowed = ["User", "Ride", "Booking", "Location", "Message", "Rating", "SosAlert"];
+    if (!allowed.includes(tableName)) return res.status(400).json({ error: "Invalid table name" });
     try {
-      const rows = db.prepare(`SELECT * FROM ${tableName}`).all();
+      const rows = await (prisma as any)[tableName.charAt(0).toLowerCase() + tableName.slice(1)].findMany();
       res.json(rows);
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
   });
 
-  app.post("/api/admin/db/query", (req, res) => {
+  app.post("/api/admin/db/query", async (req, res) => {
     const { query } = req.body;
     try {
-      const stmt = db.prepare(query);
-      if (query.trim().toLowerCase().startsWith('select')) {
-        const result = stmt.all();
-        res.json(result);
-      } else {
-        const result = stmt.run();
-        res.json(result);
-      }
+      const result = await prisma.$queryRawUnsafe(query);
+      res.json(result);
     } catch (e: any) {
       res.status(400).json({ error: e.message });
     }
   });
 
-  // --- Vite Middleware ---
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
+  // ========== SOS ENDPOINTS ==========
+
+  app.post("/api/sos", async (req, res) => {
+    const { ride_id, user_id, location } = req.body;
+    if (!ride_id || !user_id) return res.status(400).json({ error: "ride_id and user_id are required" });
+    try {
+      const ride = await prisma.ride.findFirst({ where: { id: Number(ride_id), status: "active" } });
+      if (!ride) return res.status(404).json({ error: "Active ride not found" });
+
+      const existing = await prisma.sosAlert.findFirst({ where: { ride_id: Number(ride_id), status: "active" } });
+      if (existing) return res.status(409).json({ error: "An active SOS alert already exists for this ride" });
+
+      const alert = await prisma.sosAlert.create({ data: { ride_id: Number(ride_id), user_id: Number(user_id) } });
+
+      if (location?.latitude && location?.longitude) {
+        await prisma.location.create({ data: { ride_id: Number(ride_id), user_id: Number(user_id), latitude: location.latitude, longitude: location.longitude } }).catch(() => {});
+      }
+
+      res.json({ success: true, alert_id: alert.id, message: "Emergency alert created successfully.", timestamp: new Date().toISOString() });
+    } catch (e: any) {
+      res.status(500).json({ error: "Failed to create emergency alert." });
+    }
+  });
+
+  app.post("/api/sos/resolve/:id", async (req, res) => {
+    const { reason, resolved_by } = req.body;
+    if (!reason?.trim()) return res.status(400).json({ error: "Resolution reason is required" });
+    try {
+      await prisma.sosAlert.update({
+        where: { id: Number(req.params.id) },
+        data: { status: "resolved", resolved_reason: reason.trim(), resolved_by: Number(resolved_by), resolved_at: new Date() },
+      });
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  // ========== MESSAGING ENDPOINTS ==========
+
+  app.get("/api/messages/:rideId", async (req, res) => {
+    const messages = await prisma.message.findMany({
+      where: { ride_id: Number(req.params.rideId) },
+      orderBy: { timestamp: "asc" },
+      include: { sender: { select: { name: true } } },
     });
+    res.json(messages.map(m => ({ ...m, sender_name: m.sender.name })));
+  });
+
+  app.post("/api/messages", async (req, res) => {
+    const { ride_id, sender_id, receiver_id, content } = req.body;
+    try {
+      await prisma.message.create({ data: { ride_id: Number(ride_id), sender_id: Number(sender_id), receiver_id: Number(receiver_id), content } });
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/inbox/:userId", async (req, res) => {
+    const userId = Number(req.params.userId);
+    const messages = await prisma.message.findMany({
+      where: { OR: [{ sender_id: userId }, { receiver_id: userId }] },
+      distinct: ["ride_id"],
+      include: {
+        ride: { select: { origin: true, destination: true } },
+        sender: { select: { id: true, name: true } },
+        receiver: { select: { id: true, name: true } },
+      },
+    });
+    const chats = messages.map(m => ({
+      ride_id: m.ride_id,
+      origin: m.ride.origin,
+      destination: m.ride.destination,
+      other_party_id: m.sender_id === userId ? m.receiver_id : m.sender_id,
+      other_party_name: m.sender_id === userId ? m.receiver.name : m.sender.name,
+    }));
+    res.json(chats);
+  });
+
+  // ========== RATING ENDPOINTS ==========
+
+  app.post("/api/ratings", async (req, res) => {
+    const { ride_id, rater_id, rated_user_id, rating, comment } = req.body;
+    try {
+      await prisma.rating.create({ data: { ride_id: Number(ride_id), rater_id: Number(rater_id), rated_user_id: Number(rated_user_id), rating: Number(rating), comment } });
+      res.json({ success: true });
+    } catch (e: any) {
+      if (e.code === "P2002") return res.status(400).json({ error: "You have already rated this ride" });
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/ratings/:userId", async (req, res) => {
+    const userId = Number(req.params.userId);
+    const ratings = await prisma.rating.findMany({
+      where: { rated_user_id: userId },
+      include: { rater: { select: { name: true } } },
+    });
+    const avg = ratings.length > 0 ? ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length : 0;
+    res.json({ ratings: ratings.map(r => ({ ...r, rater_name: r.rater.name })), average: avg });
+  });
+
+  app.get("/api/ratings/check/:rideId/:raterId/:ratedUserId", async (req, res) => {
+    const rating = await prisma.rating.findFirst({
+      where: { ride_id: Number(req.params.rideId), rater_id: Number(req.params.raterId), rated_user_id: Number(req.params.ratedUserId) },
+    });
+    res.json({ hasRated: !!rating, rating });
+  });
+
+  // ========== LOCATION ENDPOINTS ==========
+
+  app.post("/api/locations", async (req, res) => {
+    const { ride_id, user_id, latitude, longitude } = req.body;
+    try {
+      const existing = await prisma.location.findFirst({ where: { ride_id: Number(ride_id), user_id: Number(user_id) } });
+      if (existing) {
+        await prisma.location.update({ where: { id: existing.id }, data: { latitude, longitude } });
+      } else {
+        await prisma.location.create({ data: { ride_id: Number(ride_id), user_id: Number(user_id), latitude, longitude } });
+      }
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/locations/:rideId", async (req, res) => {
+    const locations = await prisma.location.findMany({
+      where: { ride_id: Number(req.params.rideId) },
+      include: { user: { select: { id: true, name: true } } },
+    });
+    res.json(locations.map(l => ({ ...l, user_id: l.user?.id, user_name: l.user?.name })));
+  });
+
+  // ========== VITE MIDDLEWARE ==========
+
+  if (process.env.NODE_ENV !== "production") {
+    const vite = await createViteServer({ server: { middlewareMode: true }, appType: "spa" });
     app.use(vite.middlewares);
   } else {
     app.use(express.static("dist"));
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-      });
+    console.log(`AgraRide server running on http://localhost:${PORT}`);
+  });
 }
 
-startServer();
+startServer().catch(console.error);

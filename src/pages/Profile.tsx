@@ -333,9 +333,10 @@ export const Profile = ({ user: propUser, onUserUpdate }: ProfileProps) => {
                       <input
                         type="tel"
                         value={editForm.phone}
-                        onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                        onChange={(e) => setEditForm({ ...editForm, phone: e.target.value.replace(/[^0-9]/g, '').slice(0, 10) })}
                         className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
-                        placeholder="+91 9876543210"
+                        placeholder="10-digit mobile number"
+                        maxLength={10}
                       />
                     ) : (
                       <p className="mt-1 text-sm text-gray-900">{currentUser.phone || 'Not provided'}</p>

@@ -7,10 +7,8 @@ class ApiService {
   private baseURL: string;
 
   private constructor() {
-    this.baseURL =
-      process.env.NODE_ENV === "production"
-        ? "https://api.agraride.com"
-        : "http://localhost:3000";
+    // Use relative URLs so Vite proxy works in dev and same-origin works in prod
+    this.baseURL = "/api";
   }
 
   public static getInstance(): ApiService {
@@ -20,10 +18,7 @@ class ApiService {
     return ApiService.instance;
   }
 
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {},
-  ): Promise<T> {
+  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
     const config: RequestInit = {
       headers: {
@@ -33,17 +28,16 @@ class ApiService {
       ...options,
     };
 
-    // Add auth token if available
-    const token = localStorage.getItem("auth_token");
-    if (token) {
-      (config.headers as any).Authorization = `Bearer ${token}`;
-    }
-
     try {
       const response = await fetch(url, config);
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        let errorMsg = `HTTP error! status: ${response.status}`;
+        try {
+          const errData = await response.json();
+          if (errData.error) errorMsg = errData.error;
+        } catch {}
+        throw new Error(errorMsg);
       }
 
       return await response.json();
@@ -53,81 +47,91 @@ class ApiService {
     }
   }
 
-  // User endpoints
+  // ── Auth ──────────────────────────────────────────────
+
   async login(credentials: { email: string; password: string }) {
-    return this.request<{ user: any; token: string }>("/auth/login", {
+    // Server returns flat user object — wrap it to match repository expectations
+    const user = await this.request<any>("/login", {
       method: "POST",
       body: JSON.stringify(credentials),
     });
+    return { user, token: "" };
   }
 
   async register(userData: any) {
-    return this.request<{ user: any; token: string }>("/auth/register", {
+    const user = await this.request<any>("/register", {
       method: "POST",
       body: JSON.stringify(userData),
     });
+    return { user, token: "" };
   }
 
   async getCurrentUser() {
-    return this.request<{ user: any }>("/auth/me");
+    // Not a real endpoint — return from localStorage
+    const saved = localStorage.getItem("agraride_user");
+    const user = saved ? JSON.parse(saved) : null;
+    return { user };
   }
 
-  // Ride endpoints
+  // ── Rides ─────────────────────────────────────────────
+
   async getRides(filters?: any) {
     const query = filters ? `?${new URLSearchParams(filters)}` : "";
-    return this.request<{ rides: any[] }>(`/rides${query}`);
+    const rides = await this.request<any[]>(`/rides${query}`);
+    return { rides };
   }
 
   async createRide(rideData: any) {
-    return this.request<{ ride: any }>("/rides", {
+    const ride = await this.request<any>("/rides", {
       method: "POST",
       body: JSON.stringify(rideData),
     });
+    return { ride };
   }
 
   async updateRide(rideId: number, rideData: any) {
-    return this.request<{ ride: any }>(`/rides/${rideId}`, {
+    const ride = await this.request<any>(`/rides/${rideId}`, {
       method: "PUT",
       body: JSON.stringify(rideData),
     });
+    return { ride };
   }
 
   async deleteRide(rideId: number) {
-    return this.request(`/rides/${rideId}`, {
-      method: "DELETE",
-    });
+    return this.request(`/rides/${rideId}`, { method: "DELETE" });
   }
 
-  // Booking endpoints
+  // ── Bookings ──────────────────────────────────────────
+
   async getBookings(userId: number) {
-    return this.request<{ bookings: any[] }>(`/bookings?user_id=${userId}`);
+    const bookings = await this.request<any[]>(`/bookings/passenger/${userId}`);
+    return { bookings };
   }
 
   async createBooking(bookingData: any) {
-    return this.request<{ booking: any }>("/bookings", {
+    const booking = await this.request<any>("/bookings", {
       method: "POST",
       body: JSON.stringify(bookingData),
     });
+    return { booking };
   }
 
   async updateBooking(bookingId: number, status: string) {
-    return this.request<{ booking: any }>(`/bookings/${bookingId}`, {
+    const booking = await this.request<any>(`/bookings/${bookingId}`, {
       method: "PUT",
       body: JSON.stringify({ status }),
     });
+    return { booking };
   }
 
-  // Notification endpoints
-  async getNotifications(userId: number) {
-    return this.request<{ notifications: any[] }>(
-      `/notifications?user_id=${userId}`,
-    );
+  // ── Notifications (stub — no backend endpoint yet) ────
+
+  async getNotifications(_userId: number) {
+    return { notifications: [] };
   }
 
-  async markNotificationRead(notificationId: number) {
-    return this.request(`/notifications/${notificationId}/read`, {
-      method: "PUT",
-    });
+  async markNotificationRead(_notificationId: number) {
+    return {};
   }
 }
 

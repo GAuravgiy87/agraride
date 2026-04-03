@@ -62,7 +62,7 @@ export const AuthPage = ({
 
     if (!validatePhone(formData.phone)) {
       setError(
-        "Please provide a valid Indian phone number starting with +91 and 10 digits",
+        "Please enter a valid 10-digit phone number",
       );
       return;
     }
@@ -76,12 +76,11 @@ export const AuthPage = ({
   };
 
   const emailPattern = /^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/;
-  const mobilePattern = /^\+91[6-9][0-9]{9}$/;
+  const mobilePattern = /^[0-9]{10}$/;
 
   const normalizePhoneInput = (value: string) => {
-    let digits = value.replace(/[^0-9]/g, "");
-    if (digits.length > 10) digits = digits.slice(-10);
-    return "+91" + digits;
+    const digits = value.replace(/[^0-9]/g, "");
+    return digits.slice(0, 10);
   };
 
   const validateEmail = (emailValue: string) => emailPattern.test(emailValue);
@@ -366,7 +365,8 @@ export const AuthPage = ({
                       <input
                         type="tel"
                         required
-                        pattern="\+91[6-9][0-9]{9}"
+                        pattern="[0-9]{10}"
+                        maxLength={10}
                         value={formData.phone}
                         onChange={(e) =>
                           setFormData({
@@ -375,8 +375,8 @@ export const AuthPage = ({
                           })
                         }
                         className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
-                        placeholder="+91XXXXXXXXXX"
-                        title="Indian mobile number required: +919876543210"
+                        placeholder="10-digit mobile number"
+                        title="Enter 10-digit phone number"
                       />
                     </div>
                   </div>

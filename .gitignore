@@ -1,58 +1,59 @@
-# Dependencies
+# ── Dependencies ──────────────────────────────────────────
 node_modules/
 
-# Environment variables
+# ── Environment variables ─────────────────────────────────
+# .env.example is committed as a template — everything else is secret
 .env
-.env.*
-.env.example
+.env.local
+.env.*.local
 
-# Logs
-logs
+# ── Database ──────────────────────────────────────────────
+# SQLite legacy files (project now uses PostgreSQL via Prisma)
+*.db
+*.sqlite
+*.sqlite3
+
+# Prisma generated client (regenerated via `npx prisma generate`)
+node_modules/.prisma/
+
+# ── Build / Production ────────────────────────────────────
+dist/
+build/
+.out/
+
+# ── Vite ──────────────────────────────────────────────────
+.vite/
+
+# ── TypeScript ────────────────────────────────────────────
+*.tsbuildinfo
+
+# ── Logs ──────────────────────────────────────────────────
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Database
-# *.db
-# *.sqlite
-# *.sqlite3
-
-# Build / production
-dist/
-build/
-.out/
-
-# Vite cache
-.vite/
-
-# TypeScript
-*.tsbuildinfo
-
-# OS files
+# ── OS files ──────────────────────────────────────────────
 .DS_Store
 Thumbs.db
 
-# IDE / Editors
-.vscode/
+# ── IDE / Editors ─────────────────────────────────────────
 .idea/
 *.swp
 *.swo
+# .vscode/ is kept so shared editor settings are committed
 
-# Coverage
+# ── Test / Coverage ───────────────────────────────────────
 coverage/
 
-# Temporary files
+# ── Temporary files ───────────────────────────────────────
 tmp/
 temp/
 
-# Lock files (optional – usually keep them)
-# package-lock.json
-# yarn.lock
-
-# Node process files
-pids
+# ── Node process files ────────────────────────────────────
+pids/
 *.pid
 *.seed
 *.pid.lock

@@ -1,0 +1,123 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                Int        @id @default(autoincrement())
+  name              String
+  email             String     @unique
+  password          String
+  role              String     @default("user")
+  phone             String?
+  gender            String?
+  vehicle_type      String?
+  profile_image     String?
+
+  rides             Ride[]     @relation("DriverRides")
+  bookings          Booking[]  @relation("PassengerBookings")
+  sentMessages      Message[]  @relation("SentMessages")
+  receivedMessages  Message[]  @relation("ReceivedMessages")
+  ratingsGiven      Rating[]   @relation("RatingsGiven")
+  ratingsReceived   Rating[]   @relation("RatingsReceived")
+  sosAlerts         SosAlert[] @relation("UserSOS")
+  sosResolved       SosAlert[] @relation("ResolvedByAdmin")
+  locations         Location[]
+}
+
+model Ride {
+  id                         Int        @id @default(autoincrement())
+  driver_id                  Int
+  origin                     String
+  destination                String
+  departure_time             String
+  available_seats            Int
+  price_per_seat             Float
+  status                     String     @default("active")
+  origin_lat                 Float?
+  origin_lng                 Float?
+  dest_lat                   Float?
+  dest_lng                   Float?
+  driver_vehicle             String?
+  driver_vehicle_description String?
+  license_plate              String?
+  license_plate_verified     Boolean    @default(false)
+
+  driver                     User       @relation("DriverRides", fields: [driver_id], references: [id])
+  bookings                   Booking[]
+  messages                   Message[]
+  ratings                    Rating[]
+  locations                  Location[]
+  sosAlerts                  SosAlert[]
+}
+
+model Booking {
+  id                  Int     @id @default(autoincrement())
+  ride_id             Int
+  passenger_id        Int
+  seats_booked        Int
+  status              String  @default("pending")
+  counter_offer_price Float?
+
+  ride                Ride    @relation(fields: [ride_id], references: [id])
+  passenger           User    @relation("PassengerBookings", fields: [passenger_id], references: [id])
+}
+
+model Location {
+  id         Int      @id @default(autoincrement())
+  ride_id    Int
+  user_id    Int?
+  latitude   Float?
+  longitude  Float?
+  updated_at DateTime @default(now()) @updatedAt
+
+  ride       Ride     @relation(fields: [ride_id], references: [id])
+  user       User?    @relation(fields: [user_id], references: [id])
+}
+
+model Message {
+  id          Int      @id @default(autoincrement())
+  ride_id     Int
+  sender_id   Int
+  receiver_id Int
+  content     String
+  timestamp   DateTime @default(now())
+
+  ride        Ride     @relation(fields: [ride_id], references: [id])
+  sender      User     @relation("SentMessages", fields: [sender_id], references: [id])
+  receiver    User     @relation("ReceivedMessages", fields: [receiver_id], references: [id])
+}
+
+model Rating {
+  id            Int      @id @default(autoincrement())
+  ride_id       Int
+  rater_id      Int
+  rated_user_id Int
+  rating        Int
+  comment       String?
+  timestamp     DateTime @default(now())
+
+  ride          Ride     @relation(fields: [ride_id], references: [id])
+  rater         User     @relation("RatingsGiven", fields: [rater_id], references: [id])
+  ratedUser     User     @relation("RatingsReceived", fields: [rated_user_id], references: [id])
+
+  @@unique([ride_id, rater_id, rated_user_id])
+}
+
+model SosAlert {
+  id              Int       @id @default(autoincrement())
+  ride_id         Int
+  user_id         Int
+  status          String    @default("active")
+  resolved_reason String?
+  resolved_by     Int?
+  resolved_at     DateTime?
+  timestamp       DateTime  @default(now())
+
+  ride            Ride      @relation(fields: [ride_id], references: [id])
+  user            User      @relation("UserSOS", fields: [user_id], references: [id])
+  resolvedByUser  User?     @relation("ResolvedByAdmin", fields: [resolved_by], references: [id])
+}
